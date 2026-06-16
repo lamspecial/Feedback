@@ -8,8 +8,6 @@ import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, dele
          query, where, orderBy, limit, startAfter,
          serverTimestamp, arrayUnion, increment }
                                     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getStorage, ref as sRef, uploadBytes, getDownloadURL }
-                                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs";
 
 // ── Firebase init ──────────────────────────────
@@ -17,13 +15,13 @@ const firebaseConfig = {
   apiKey:            "AIzaSyC9hft4HD1Yms4oamZq59REe6lyKkqHE9k",
   authDomain:        "feedback-68557.firebaseapp.com",
   projectId:         "feedback-68557",
-  storageBucket:     "feedback-68557.firebasestorage.app",
+
   messagingSenderId: "1056419419871",
   appId:             "1:1056419419871:web:e6fa72598fb44875d03b6a"
 };
 const app     = initializeApp(firebaseConfig);
 const db      = getFirestore(app);
-const storage = getStorage(app);
+
 
 // ══════════════════════════════════════════════
 // STATE
@@ -39,7 +37,6 @@ let callIdx      = 0;
 let callBranchId = null;
 let callLastDoc  = null;
 let callHasMore  = false;
-let audioFile    = null;
 
 // customers list state
 let custLastDoc  = null;
@@ -276,10 +273,6 @@ function renderCallCustomer() {
   document.querySelectorAll(".tag-btn").forEach(b => b.classList.remove("on"));
   $("pos-notes").value = "";
   $("neg-notes").value = "";
-  $("audio-area").classList.remove("done");
-  $("audio-label").textContent = "📎 رفع تسجيل المكالمة (اختياري)";
-  $("audio-input").value = "";
-  audioFile = null;
 }
 
 window.resetCallScreen = function () {
@@ -300,15 +293,6 @@ window.saveSurveyAndNext = async function () {
     const positives = getSelectedTags("pos-tags");
     const negatives = getSelectedTags("neg-tags");
 
-    let audioPath = null;
-    if (audioFile) {
-      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-      const path    = `calls/${c.phone}_${dateStr}.mp3`;
-      const storRef = sRef(storage, path);
-      await uploadBytes(storRef, audioFile, { contentType: "audio/mpeg" });
-      audioPath = path;
-    }
-
     await addDoc(collection(db, "surveys"), {
       customerId:    c.id,
       branchId:      callBranchId,
@@ -317,7 +301,6 @@ window.saveSurveyAndNext = async function () {
       positiveNotes: $("pos-notes").value.trim(),
       negativeNotes: $("neg-notes").value.trim(),
       callDate:      serverTimestamp(),
-      audioFile:     audioPath,
       locked:        false
     });
 
@@ -331,14 +314,6 @@ window.saveSurveyAndNext = async function () {
   } finally {
     btn.disabled    = false;
     btn.textContent = "حفظ والانتقال للعميل التالي ←";
-  }
-};
-
-window.handleAudioSelect = function (input) {
-  if (input.files[0]) {
-    audioFile = input.files[0];
-    $("audio-label").textContent = "✅ " + input.files[0].name;
-    $("audio-area").classList.add("done");
   }
 };
 
@@ -522,21 +497,12 @@ async function openProfile(custId) {
                   </div>
                   ${s.positiveNotes ? `<div class="survey-note pos">✦ ${s.positiveNotes}</div>` : ""}
                   ${s.negativeNotes ? `<div class="survey-note neg">◈ ${s.negativeNotes}</div>` : ""}
-                  ${s.audioFile ? `<audio controls id="aud-${s.id}"></audio>` : ""}
                 </div>`;
             }).join("")
         }
       </div>
     `;
 
-    // load audio URLs async
-    for (const s of surveys) {
-      if (s.audioFile) {
-        getDownloadURL(sRef(storage, s.audioFile))
-          .then(url => { const el = $("aud-" + s.id); if (el) el.src = url; })
-          .catch(() => {});
-      }
-    }
   } catch (e) {
     $("profile-content").innerHTML = `<p class="err-msg">${e.message}</p>`;
   }
