@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <title>نظام رضا العملاء</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══ NAVBAR ══════════════════════════════ -->
+<nav class="navbar">
+  <div class="navbar-brand"><span>📋</span> رضا العملاء</div>
+  <div style="display:flex;gap:.5rem;align-items:center">
+    <button class="btn btn-ghost btn-sm" onclick="showPage('import')" style="font-size:.8rem">+ استيراد</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     PAGES
+══════════════════════════════════════════ -->
+
+<!-- 1. DASHBOARD ─────────────────────────── -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <h2 class="page-title">الرئيسية</h2>
+    <button class="btn btn-secondary btn-sm" onclick="loadDashboard()">↻</button>
+  </div>
+
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi-card"><div class="loading" style="width:20px;height:20px;border-width:2px;margin:.4rem auto"></div></div>
+    <div class="kpi-card"></div><div class="kpi-card"></div><div class="kpi-card"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title" style="color:var(--pos)">✦ أبرز الإشادات</span></div>
+    <div id="dash-pos"><div class="loading"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title" style="color:var(--neg)">◈ أبرز الشكاوى</span></div>
+    <div id="dash-neg"><div class="loading"></div></div>
+  </div>
+</div>
+
+<!-- 2. CALL ───────────────────────────────── -->
+<div class="page" id="page-call">
+  <div class="page-header">
+    <h2 class="page-title">الاتصال</h2>
+    <button class="btn btn-ghost btn-sm" id="change-branch-btn" onclick="resetCallScreen()" style="display:none">تغيير الفرع</button>
+  </div>
+
+  <!-- Setup -->
+  <div id="call-setup" class="card">
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label class="form-label">اختر الفرع للبدء</label>
+      <select class="form-control" id="call-branch-sel"></select>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="startCalling()">بدء الاتصالات</button>
+  </div>
+
+  <!-- Interface -->
+  <div id="call-interface" style="display:none">
+    <!-- Progress -->
+    <div class="call-progress">
+      <span id="call-progress-txt" style="min-width:45px">0 / 0</span>
+      <div class="progress-track"><div class="progress-fill" id="call-pbar"></div></div>
+      <button class="btn btn-ghost btn-sm" onclick="skipCustomer()">تخطي ←</button>
+    </div>
+
+    <!-- Customer card -->
+    <div class="call-customer-card">
+      <div>
+        <div class="call-name" id="call-name">—</div>
+        <div class="call-phone" id="call-phone">—</div>
+      </div>
+      <a id="call-tel" href="#" class="call-dial">📞</a>
+    </div>
+
+    <!-- Tags -->
+    <div class="tags-label pos">✦ الإيجابيات</div>
+    <div class="tag-group" id="pos-tags"></div>
+
+    <div class="tags-label neg">◈ السلبيات</div>
+    <div class="tag-group" id="neg-tags"></div>
+
+    <!-- Notes -->
+    <div class="form-group">
+      <label class="form-label">ملاحظات إيجابية</label>
+      <textarea class="form-control" id="pos-notes" rows="2" placeholder="اكتب هنا..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ملاحظات سلبية</label>
+      <textarea class="form-control" id="neg-notes" rows="2" placeholder="اكتب هنا..."></textarea>
+    </div>
+
+    <!-- Audio -->
+    <label class="audio-area" id="audio-area" onclick="document.getElementById('audio-input').click()">
+      <div id="audio-label">📎 رفع تسجيل المكالمة (اختياري)</div>
+      <input type="file" id="audio-input" accept="audio/*" onchange="handleAudioSelect(this)">
+    </label>
+
+    <!-- Save -->
+    <button class="btn btn-success btn-block btn-xl" id="save-btn" onclick="saveSurveyAndNext()">
+      حفظ والانتقال للعميل التالي ←
+    </button>
+  </div>
+</div>
+
+<!-- 3. CUSTOMERS ──────────────────────────── -->
+<div class="page" id="page-customers">
+  <div class="page-header">
+    <h2 class="page-title">العملاء</h2>
+  </div>
+
+  <div class="form-group">
+    <input type="search" class="form-control" placeholder="ابحث بالاسم أو الجوال..." oninput="searchCustomers(this.value)">
+  </div>
+  <div class="form-group">
+    <select class="form-control" id="cust-branch-filter" onchange="filterCustBranch(this.value)">
+      <option value="">جميع الفروع</option>
+    </select>
+  </div>
+
+  <ul class="c-list" id="cust-list"><li><div class="loading"></div></li></ul>
+  <button class="btn btn-secondary btn-block" id="load-more-btn" style="display:none" onclick="loadMoreCustomers()">تحميل المزيد</button>
+</div>
+
+<!-- 4. PROFILE ────────────────────────────── -->
+<div class="page" id="page-profile">
+  <div class="page-header">
+    <button class="btn btn-ghost btn-sm" onclick="goBack()">← رجوع</button>
+    <h2 class="page-title">سجل العميل</h2>
+    <div style="width:56px"></div>
+  </div>
+  <div id="profile-content"><div class="loading"></div></div>
+</div>
+
+<!-- 5. IMPORT ─────────────────────────────── -->
+<div class="page" id="page-import">
+  <div class="page-header">
+    <button class="btn btn-ghost btn-sm" onclick="goBack()">← رجوع</button>
+    <h2 class="page-title">استيراد العملاء</h2>
+    <div style="width:56px"></div>
+  </div>
+
+  <div class="card">
+    <div class="form-group">
+      <label class="form-label">الفرع</label>
+      <select class="form-control" id="import-branch-sel"></select>
+    </div>
+
+    <div class="import-tabs">
+      <button class="itab active" onclick="switchImportTab('text',this)">نص</button>
+      <button class="itab" onclick="switchImportTab('excel',this)">Excel</button>
+    </div>
+
+    <div id="text-section">
+      <div class="form-group">
+        <label class="form-label">أرقام الجوال — كل رقم في سطر</label>
+        <textarea class="form-control" id="import-text" rows="9"
+          placeholder="0551111111 (محمد)&#10;0552222222 (خالد)&#10;0553333333"></textarea>
+      </div>
+    </div>
+
+    <div id="excel-section" style="display:none">
+      <label class="audio-area" onclick="document.getElementById('xlsx-input').click()">
+        <div>📊 اضغط لاختيار ملف Excel</div>
+        <div style="font-size:.78rem;margin-top:.25rem;color:var(--ink-3)">.xlsx / .xls</div>
+        <input type="file" id="xlsx-input" accept=".xlsx,.xls" onchange="handleXlsx(this)" style="display:none">
+      </label>
+      <div id="xlsx-name" style="font-size:.84rem;color:var(--pos);display:none;margin-top:.4rem"></div>
+    </div>
+
+    <div class="prog-wrap" id="prog-wrap"><div class="prog-fill" id="prog-fill"></div></div>
+    <button class="btn btn-primary btn-block" id="import-btn" onclick="doImport()">بدء الاستيراد</button>
+    <div class="import-result" id="import-result"></div>
+  </div>
+</div>
+
+<!-- 6. REPORTS ────────────────────────────── -->
+<div class="page" id="page-reports">
+  <div class="page-header">
+    <h2 class="page-title">التقارير</h2>
+    <button class="btn btn-secondary btn-sm" onclick="loadReports()">↻</button>
+  </div>
+
+  <div class="branch-bar" id="rpt-branch-bar">
+    <button class="bfilter active">جميع الفروع</button>
+  </div>
+
+  <div class="card">
+    <div id="tag-report"><div class="loading"></div></div>
+  </div>
+
+  <div class="card" id="branch-cmp-card">
+    <div class="card-header"><span class="card-title">مقارنة الفروع</span></div>
+    <div id="branch-cmp"><div class="loading"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">آراء العملاء</span>
+      <button class="btn btn-ghost btn-sm" onclick="refreshSnippets()">↻</button>
+    </div>
+    <div class="snippet-grid" id="snippets"><div class="loading"></div></div>
+  </div>
+</div>
+
+<!-- 7. ADMIN ──────────────────────────────── -->
+<div class="page" id="page-admin">
+  <div class="page-header">
+    <h2 class="page-title">الإدارة</h2>
+  </div>
+
+  <!-- Branches -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">الفروع</span>
+      <button class="btn btn-primary btn-sm" onclick="toggleAddBranch()">+ إضافة</button>
+    </div>
+    <div class="inline-add" id="add-branch-form">
+      <input type="text" class="form-control" id="new-branch-name" placeholder="اسم الفرع">
+      <button class="btn btn-success btn-sm" onclick="addBranch()">إضافة</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleAddBranch()">✕</button>
+    </div>
+    <ul class="admin-list" id="branch-list"><li><div class="loading"></div></li></ul>
+  </div>
+
+  <!-- Positive Tags -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title" style="color:var(--pos)">✦ الوسوم الإيجابية</span>
+      <button class="btn btn-success btn-sm" onclick="toggleAddTag('positive')">+ إضافة</button>
+    </div>
+    <div class="inline-add" id="add-pos-tag-form">
+      <input type="text" class="form-control" id="new-pos-tag" placeholder="اسم الوسم">
+      <button class="btn btn-success btn-sm" onclick="addTag('positive')">إضافة</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleAddTag('positive')">✕</button>
+    </div>
+    <ul class="admin-list" id="pos-tag-list"></ul>
+  </div>
+
+  <!-- Negative Tags -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title" style="color:var(--neg)">◈ الوسوم السلبية</span>
+      <button class="btn btn-danger btn-sm" onclick="toggleAddTag('negative')">+ إضافة</button>
+    </div>
+    <div class="inline-add" id="add-neg-tag-form">
+      <input type="text" class="form-control" id="new-neg-tag" placeholder="اسم الوسم">
+      <button class="btn btn-danger btn-sm" onclick="addTag('negative')">إضافة</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleAddTag('negative')">✕</button>
+    </div>
+    <ul class="admin-list" id="neg-tag-list"></ul>
+  </div>
+</div>
+
+<!-- ══ TOAST ══════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══ BOTTOM NAV ══════════════════════════ -->
+<nav class="bottom-nav">
+  <button class="bnav-item active" data-p="dashboard" onclick="showPage('dashboard',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+    الرئيسية
+  </button>
+  <button class="bnav-item" data-p="call" onclick="showPage('call',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.82 19.79 19.79 0 01.4 2.18 2 2 0 012.18 0H5a2 2 0 012 1.72 12.05 12.05 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.05 12.05 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+    الاتصال
+  </button>
+  <button class="bnav-item" data-p="customers" onclick="showPage('customers',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    العملاء
+  </button>
+  <button class="bnav-item" data-p="reports" onclick="showPage('reports',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    التقارير
+  </button>
+  <button class="bnav-item" data-p="admin" onclick="showPage('admin',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M12 14c-6 0-8 2-8 3v1h16v-1c0-1-2-3-8-3z"/></svg>
+    الإدارة
+  </button>
+</nav>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
