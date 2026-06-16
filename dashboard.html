@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <title>لوحة التحكم - نظام رضا العملاء</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- النافبار -->
+<nav class="navbar">
+  <span class="navbar-brand">📋 رضا العملاء</span>
+  <div class="navbar-actions">
+    <span id="userRoleBadge" class="badge badge-accent" style="display:none"></span>
+    <button class="btn btn-ghost btn-sm" onclick="Auth.logout()">خروج</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════
+     الصفحات
+══════════════════════════════════ -->
+
+<!-- 1. الداشبورد -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <h2 class="page-title">الرئيسية</h2>
+    <button class="btn btn-secondary btn-sm" onclick="loadDashboard()">↻ تحديث</button>
+  </div>
+
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card"><div class="loading-spinner" style="margin:0.5rem auto;width:24px;height:24px;border-width:2px"></div></div>
+    <div class="kpi-card"></div>
+    <div class="kpi-card"></div>
+    <div class="kpi-card"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">أبرز الإشادات</h3></div>
+    <div id="dashPositiveTags"><div class="loading-spinner"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">أبرز الشكاوى</h3></div>
+    <div id="dashNegativeTags"><div class="loading-spinner"></div></div>
+  </div>
+</div>
+
+<!-- 2. شاشة الاتصال -->
+<div class="page" id="page-call">
+  <div class="page-header">
+    <h2 class="page-title">الاتصال</h2>
+    <button class="btn btn-secondary btn-sm" id="callSelectBranchBtn" onclick="showBranchSelector()">اختر الفرع</button>
+  </div>
+
+  <!-- اختيار الفرع -->
+  <div id="callBranchSelectorSection" class="card">
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">اختر الفرع للبدء بالاتصالات</label>
+      <select class="form-control" id="callBranchSelect">
+        <option value="">-- اختر الفرع --</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:.75rem" onclick="startCalling()">بدء الاتصالات</button>
+  </div>
+
+  <!-- واجهة الاتصال -->
+  <div id="callInterface" style="display:none">
+    <div class="call-progress">
+      <span id="callProgressText">0 / 0</span>
+      <div class="call-progress-bar">
+        <div class="call-progress-fill" id="callProgressFill" style="width:0%"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="skipCustomer()">تخطي ←</button>
+    </div>
+
+    <div class="call-screen">
+      <!-- بطاقة العميل -->
+      <div class="call-customer-card">
+        <div class="call-customer-info">
+          <div class="customer-name" id="callCustomerName">-</div>
+          <div class="customer-phone" id="callCustomerPhone">-</div>
+        </div>
+        <a id="callPhoneLink" href="#" class="call-btn" title="اتصال">📞</a>
+      </div>
+
+      <!-- الإيجابيات -->
+      <div class="tags-section">
+        <div class="tags-section-title positive">✦ الإيجابيات</div>
+        <div class="tag-btn-group" id="positiveTagsContainer"></div>
+      </div>
+
+      <!-- السلبيات -->
+      <div class="tags-section">
+        <div class="tags-section-title negative">◈ السلبيات</div>
+        <div class="tag-btn-group" id="negativeTagsContainer"></div>
+      </div>
+
+      <!-- الملاحظات -->
+      <div class="form-group">
+        <label class="form-label">ملاحظات إيجابية</label>
+        <textarea class="form-control" id="positiveNotes" rows="2" placeholder="اكتب ملاحظاتك الإيجابية..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظات سلبية</label>
+        <textarea class="form-control" id="negativeNotes" rows="2" placeholder="اكتب الشكاوى أو الملاحظات السلبية..."></textarea>
+      </div>
+
+      <!-- رفع التسجيل -->
+      <label class="audio-upload-area" id="audioUploadArea" for="audioFileInput">
+        <div id="audioUploadLabel">📎 رفع تسجيل المكالمة (اختياري)</div>
+        <input type="file" id="audioFileInput" accept="audio/*" onchange="handleAudioSelect(this)">
+      </label>
+
+      <!-- حفظ والتالي -->
+      <button class="btn btn-success btn-block btn-xl" id="saveSurveyBtn" onclick="saveSurveyAndNext()">
+        حفظ والانتقال للعميل التالي ←
+      </button>
+      <button class="btn btn-ghost btn-block btn-sm" style="margin-top:.5rem" onclick="skipCustomer()">
+        تخطي هذا العميل
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. العملاء -->
+<div class="page" id="page-customers">
+  <div class="page-header">
+    <h2 class="page-title">العملاء</h2>
+    <button class="btn btn-primary btn-sm" onclick="showPage('import')">+ استيراد</button>
+  </div>
+
+  <div class="form-group">
+    <input type="search" class="form-control" id="customerSearch" placeholder="ابحث بالاسم أو الجوال..." oninput="searchCustomers(this.value)">
+  </div>
+
+  <div class="form-group">
+    <select class="form-control" id="customerBranchFilter" onchange="filterCustomersByBranch(this.value)">
+      <option value="">جميع الفروع</option>
+    </select>
+  </div>
+
+  <ul class="customer-list" id="customerList">
+    <li><div class="loading-spinner"></div></li>
+  </ul>
+  <button class="btn btn-secondary btn-block" id="loadMoreCustomersBtn" style="display:none" onclick="loadMoreCustomers()">تحميل المزيد</button>
+</div>
+
+<!-- 4. الاستيراد -->
+<div class="page" id="page-import">
+  <div class="page-header">
+    <h2 class="page-title">استيراد العملاء</h2>
+  </div>
+
+  <div class="card">
+    <div class="form-group">
+      <label class="form-label">الفرع</label>
+      <select class="form-control" id="importBranchSelect">
+        <option value="">-- اختر الفرع --</option>
+      </select>
+    </div>
+
+    <div class="import-tabs">
+      <button class="import-tab active" onclick="switchImportTab('text', this)">نص</button>
+      <button class="import-tab" onclick="switchImportTab('excel', this)">Excel</button>
+    </div>
+
+    <!-- نص -->
+    <div id="textImportSection">
+      <div class="form-group">
+        <label class="form-label">أرقام الجوال (كل رقم في سطر)</label>
+        <textarea class="form-control" id="importTextArea" rows="8"
+          placeholder="0551111111 (محمد)&#10;0552222222 (خالد)&#10;0553333333"></textarea>
+      </div>
+    </div>
+
+    <!-- Excel -->
+    <div id="excelImportSection" style="display:none">
+      <div class="audio-upload-area" id="excelDropArea">
+        <div>📊 اسحب ملف Excel هنا أو اضغط للاختيار</div>
+        <div style="font-size:.8rem;color:var(--ink-3);margin-top:.3rem">.xlsx, .xls</div>
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleExcelSelect(this)">
+      </div>
+      <div id="excelFileName" style="font-size:.85rem;color:var(--pos);display:none;margin-top:.5rem"></div>
+    </div>
+
+    <div class="progress-bar-wrap" id="importProgressWrap">
+      <div class="progress-bar-fill" id="importProgressFill"></div>
+    </div>
+
+    <button class="btn btn-primary btn-block" id="importBtn" onclick="doImport()">بدء الاستيراد</button>
+
+    <div id="importResult" style="display:none" class="import-result"></div>
+  </div>
+</div>
+
+<!-- 5. سجل العميل -->
+<div class="page" id="page-customer-profile">
+  <div class="page-header">
+    <button class="btn btn-ghost btn-sm" onclick="goBack()">← رجوع</button>
+    <h2 class="page-title">سجل العميل</h2>
+    <div style="width:60px"></div>
+  </div>
+  <div id="customerProfileContent"><div class="loading-spinner"></div></div>
+</div>
+
+<!-- 6. التقارير -->
+<div class="page" id="page-reports">
+  <div class="page-header">
+    <h2 class="page-title">التقارير</h2>
+    <button class="btn btn-secondary btn-sm" onclick="loadReports()">↻ تحديث</button>
+  </div>
+
+  <div class="branch-filter-bar" id="reportBranchFilter">
+    <button class="branch-filter-btn active" data-branch="" onclick="selectReportBranch('', this)">جميع الفروع</button>
+  </div>
+
+  <div class="card">
+    <div id="tagReportContainer"><div class="loading-spinner"></div></div>
+  </div>
+
+  <div class="card" id="branchComparisonCard" style="display:none">
+    <div class="card-header"><h3 class="card-title">مقارنة الفروع</h3></div>
+    <div id="branchComparisonContainer"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">آراء العملاء</h3>
+      <button class="btn btn-ghost btn-sm" onclick="loadSnippets()">↻</button>
+    </div>
+    <div class="snippets-grid" id="snippetsContainer"></div>
+  </div>
+</div>
+
+<!-- 7. الإدارة (مالك فقط) -->
+<div class="page" id="page-admin">
+  <div class="page-header">
+    <h2 class="page-title">الإدارة</h2>
+  </div>
+
+  <!-- إدارة الفروع -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">الفروع</h3>
+      <button class="btn btn-primary btn-sm" onclick="showAddBranch()">+ إضافة</button>
+    </div>
+    <div id="addBranchForm" style="display:none;margin-bottom:.75rem">
+      <div style="display:flex;gap:.5rem">
+        <input type="text" class="form-control" id="newBranchName" placeholder="اسم الفرع">
+        <button class="btn btn-success btn-sm" onclick="addBranch()">إضافة</button>
+        <button class="btn btn-ghost btn-sm" onclick="hideAddBranch()">إلغاء</button>
+      </div>
+    </div>
+    <ul class="admin-list" id="branchList"><li><div class="loading-spinner"></div></li></ul>
+  </div>
+
+  <!-- إدارة الوسوم -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">الوسوم الإيجابية</h3>
+      <button class="btn btn-success btn-sm" onclick="showAddTag('positive')">+ إضافة</button>
+    </div>
+    <div id="addPosTagForm" style="display:none;margin-bottom:.75rem">
+      <div style="display:flex;gap:.5rem">
+        <input type="text" class="form-control" id="newPosTagName" placeholder="اسم الوسم">
+        <button class="btn btn-success btn-sm" onclick="addTag('positive')">إضافة</button>
+        <button class="btn btn-ghost btn-sm" onclick="hideAddTag('positive')">إلغاء</button>
+      </div>
+    </div>
+    <ul class="admin-list" id="posTagList"></ul>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">الوسوم السلبية</h3>
+      <button class="btn btn-danger btn-sm" onclick="showAddTag('negative')">+ إضافة</button>
+    </div>
+    <div id="addNegTagForm" style="display:none;margin-bottom:.75rem">
+      <div style="display:flex;gap:.5rem">
+        <input type="text" class="form-control" id="newNegTagName" placeholder="اسم الوسم">
+        <button class="btn btn-danger btn-sm" onclick="addTag('negative')">إضافة</button>
+        <button class="btn btn-ghost btn-sm" onclick="hideAddTag('negative')">إلغاء</button>
+      </div>
+    </div>
+    <ul class="admin-list" id="negTagList"></ul>
+  </div>
+</div>
+
+<!-- التنبيه Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- التبويبات السفلية -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bottom-nav-item active" data-page="dashboard" onclick="showPage('dashboard', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    الرئيسية
+  </button>
+  <button class="bottom-nav-item" data-page="call" onclick="showPage('call', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.82a19.79 19.79 0 01-3.07-8.68A2 2 0 012 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+    الاتصال
+  </button>
+  <button class="bottom-nav-item" data-page="customers" onclick="showPage('customers', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    العملاء
+  </button>
+  <button class="bottom-nav-item" data-page="reports" onclick="showPage('reports', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    التقارير
+  </button>
+  <button class="bottom-nav-item" data-page="admin" id="adminNavBtn" onclick="showPage('admin', this)" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 1 4.93 19.07"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83"/></svg>
+    الإدارة
+  </button>
+</nav>
+
+<!-- Scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/branches.js"></script>
+<script src="js/tags.js"></script>
+<script src="js/customers.js"></script>
+<script src="js/surveys.js"></script>
+<script src="js/reports.js"></script>
+
+<script>
+// ══════════════════════════════════════
+// APP STATE
+// ══════════════════════════════════════
+let currentUser = null;
+let currentPage = 'dashboard';
+let previousPage = null;
+
+// Call screen state
+let callQueue = [];
+let callIndex = 0;
+let callBranchId = null;
+let callLastDoc = null;
+let callHasMore = false;
+let selectedAudioFile = null;
+
+// Customers list state
+let customerLastDoc = null;
+let customerHasMore = false;
+let currentBranchFilter = '';
+let searchDebounce = null;
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+Auth.requireAuth('index.html').then(async user => {
+  currentUser = user;
+
+  // إظهار الدور
+  const badge = document.getElementById('userRoleBadge');
+  badge.textContent = user.role === 'owner' ? 'مالك' : 'باحث';
+  badge.style.display = 'inline-flex';
+
+  // إظهار إدارة للمالك فقط
+  if (user.role === 'owner') {
+    document.getElementById('adminNavBtn').style.display = 'flex';
+  }
+
+  // تشغيل قفل الاستطلاعات المنتهية
+  Surveys.lockExpiredSurveys().catch(() => {});
+
+  // تحميل الصفحة الأولى
+  await loadDashboard();
+  await initBranchSelects();
+});
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+function showPage(name, navBtn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+
+  document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+  if (navBtn) navBtn.classList.add('active');
+  else {
+    const found = document.querySelector(`.bottom-nav-item[data-page="${name}"]`);
+    if (found) found.classList.add('active');
+  }
+
+  previousPage = currentPage;
+  currentPage = name;
+
+  // lazy load
+  if (name === 'customers' && !customerLastDoc) loadCustomers();
+  if (name === 'reports') loadReports();
+  if (name === 'admin') loadAdmin();
+  if (name === 'call') initCallPage();
+  if (name === 'import') initImportPage();
+}
+
+function goBack() {
+  showPage(previousPage || 'customers');
+}
+
+// ══════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// ══════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════
+async function loadDashboard() {
+  try {
+    const stats = await Surveys.getDashboardStats();
+    const [allTags, branches] = await Promise.all([Tags.getAll(), Branches.getAll()]);
+    const tagMap = {};
+    allTags.forEach(t => { tagMap[t.id] = t.name; });
+
+    document.getElementById('kpiGrid').innerHTML = `
+      <div class="kpi-card">
+        <div class="kpi-value">${stats.totalCustomers}</div>
+        <div class="kpi-label">إجمالي العملاء</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">${stats.totalSurveys}</div>
+        <div class="kpi-label">الاستطلاعات</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">${stats.contactRate}%</div>
+        <div class="kpi-label">نسبة التواصل</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">${branches.length}</div>
+        <div class="kpi-label">الفروع</div>
+      </div>
+    `;
+
+    const renderMiniTags = (counts, tagMap, type, containerId) => {
+      const sorted = Object.entries(counts)
+        .map(([id, c]) => ({ name: tagMap[id] || id, count: c }))
+        .sort((a, b) => b.count - a.count).slice(0, 5);
+      const max = sorted[0]?.count || 1;
+      document.getElementById(containerId).innerHTML = sorted.length === 0
+        ? '<p class="empty-msg" style="padding:0.5rem">لا توجد بيانات بعد</p>'
+        : sorted.map(t => `
+            <div class="report-bar-item" style="margin-bottom:.6rem">
+              <div class="report-bar-label"><span>${t.name}</span><span class="report-bar-count">${t.count}</span></div>
+              <div class="report-bar-track"><div class="report-bar-fill ${type}" style="width:${Math.round(t.count/max*100)}%"></div></div>
+            </div>`).join('');
+    };
+
+    renderMiniTags(stats.posCounts, tagMap, 'positive', 'dashPositiveTags');
+    renderMiniTags(stats.negCounts, tagMap, 'negative', 'dashNegativeTags');
+
+  } catch (err) {
+    showToast('خطأ في تحميل الداشبورد', 'error');
+  }
+}
+
+// ══════════════════════════════════════
+// BRANCH SELECTS INIT
+// ══════════════════════════════════════
+async function initBranchSelects() {
+  await Branches.buildSelect(document.getElementById('callBranchSelect'));
+  await Branches.buildSelect(document.getElementById('importBranchSelect'));
+  await Branches.buildSelect(document.getElementById('customerBranchFilter'), 'جميع الفروع');
+  document.getElementById('customerBranchFilter').querySelector('option').value = '';
+}
+
+// ══════════════════════════════════════
+// CALL SCREEN
+// ══════════════════════════════════════
+async function initCallPage() {
+  // reset if no branch selected
+  if (!callBranchId) {
+    document.getElementById('callBranchSelectorSection').style.display = 'block';
+    document.getElementById('callInterface').style.display = 'none';
+  }
+}
+
+function showBranchSelector() {
+  callBranchId = null;
+  callQueue = [];
+  callIndex = 0;
+  document.getElementById('callBranchSelectorSection').style.display = 'block';
+  document.getElementById('callInterface').style.display = 'none';
+}
+
+async function startCalling() {
+  const branchId = document.getElementById('callBranchSelect').value;
+  if (!branchId) { showToast('اختر الفرع أولاً', 'error'); return; }
+
+  callBranchId = branchId;
+  callQueue = [];
+  callIndex = 0;
+  callLastDoc = null;
+
+  await loadCallBatch();
+
+  if (callQueue.length === 0) {
+    showToast('لا يوجد عملاء في هذا الفرع', 'error');
+    return;
+  }
+
+  document.getElementById('callBranchSelectorSection').style.display = 'none';
+  document.getElementById('callInterface').style.display = 'block';
+
+  await loadTagsForCall();
+  showCurrentCustomer();
+}
+
+async function loadCallBatch() {
+  const result = await Customers.getForCalling(callBranchId, callLastDoc);
+  callQueue = [...callQueue, ...result.customers];
+  callLastDoc = result.lastDoc;
+  callHasMore = result.hasMore;
+}
+
+async function loadTagsForCall() {
+  await Tags.buildTagButtons(document.getElementById('positiveTagsContainer'), 'positive');
+  await Tags.buildTagButtons(document.getElementById('negativeTagsContainer'), 'negative');
+}
+
+function showCurrentCustomer() {
+  if (callIndex >= callQueue.length) {
+    if (callHasMore) {
+      loadCallBatch().then(() => showCurrentCustomer());
+      return;
+    }
+    // انتهت القائمة
+    document.getElementById('callInterface').innerHTML = `
+      <div class="card" style="text-align:center;padding:2rem">
+        <div style="font-size:2rem;margin-bottom:.75rem">✅</div>
+        <h3>تم الانتهاء من جميع العملاء</h3>
+        <p style="color:var(--ink-3);margin:.5rem 0 1rem">تم إجراء ${callIndex} محادثة</p>
+        <button class="btn btn-primary" onclick="showBranchSelector()">اختيار فرع آخر</button>
+      </div>`;
+    return;
+  }
+
+  const customer = callQueue[callIndex];
+
+  document.getElementById('callCustomerName').textContent = customer.name || 'بدون اسم';
+  document.getElementById('callCustomerPhone').textContent = customer.phone;
+  document.getElementById('callPhoneLink').href = 'tel:' + customer.phone;
+
+  // إعادة تعيين الوسوم والملاحظات
+  document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('positiveNotes').value = '';
+  document.getElementById('negativeNotes').value = '';
+  document.getElementById('audioUploadArea').classList.remove('has-file');
+  document.getElementById('audioUploadLabel').textContent = '📎 رفع تسجيل المكالمة (اختياري)';
+  document.getElementById('audioFileInput').value = '';
+  selectedAudioFile = null;
+
+  const total = callQueue.length;
+  const pct = total > 0 ? Math.round((callIndex / total) * 100) : 0;
+  document.getElementById('callProgressText').textContent = `${callIndex} / ${total}`;
+  document.getElementById('callProgressFill').style.width = pct + '%';
+}
+
+async function saveSurveyAndNext() {
+  const customer = callQueue[callIndex];
+  const btn = document.getElementById('saveSurveyBtn');
+  btn.disabled = true;
+  btn.textContent = 'جاري الحفظ...';
+
+  try {
+    const positives = Tags.getSelectedIds(document.getElementById('positiveTagsContainer'));
+    const negatives = Tags.getSelectedIds(document.getElementById('negativeTagsContainer'));
+
+    let audioPath = null;
+    if (selectedAudioFile) {
+      const { path } = await Surveys.uploadAudio(selectedAudioFile, customer.phone);
+      audioPath = path;
+    }
+
+    await Surveys.save({
+      customerId: customer.id,
+      branchId: callBranchId,
+      positives,
+      negatives,
+      positiveNotes: document.getElementById('positiveNotes').value,
+      negativeNotes: document.getElementById('negativeNotes').value,
+      audioFile: audioPath
+    });
+
+    showToast('تم الحفظ بنجاح ✓', 'success');
+    callIndex++;
+    showCurrentCustomer();
+  } catch (err) {
+    showToast('خطأ في الحفظ: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'حفظ والانتقال للعميل التالي ←';
+  }
+}
+
+function skipCustomer() {
+  callIndex++;
+  showCurrentCustomer();
+}
+
+function handleAudioSelect(input) {
+  if (input.files[0]) {
+    selectedAudioFile = input.files[0];
+    document.getElementById('audioUploadLabel').textContent = '✅ ' + input.files[0].name;
+    document.getElementById('audioUploadArea').classList.add('has-file');
+  }
+}
+
+// ══════════════════════════════════════
+// CUSTOMERS LIST
+// ══════════════════════════════════════
+async function loadCustomers(reset = true) {
+  if (reset) {
+    customerLastDoc = null;
+    document.getElementById('customerList').innerHTML = '<li><div class="loading-spinner"></div></li>';
+  }
+
+  try {
+    const branchId = currentBranchFilter;
+    const result = await Customers.getForCalling(branchId || 'ALL', customerLastDoc);
+
+    // إذا "ALL"، نجلب بدون فلتر
+    let customers, lastDoc, hasMore;
+    if (!branchId) {
+      const snap = await db.collection('customers')
+        .orderBy('lastSeen', 'desc')
+        .limit(20)
+        .get();
+      customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      lastDoc = snap.docs[snap.docs.length - 1] || null;
+      hasMore = snap.docs.length === 20;
+    } else {
+      ({ customers, lastDoc, hasMore } = result);
+    }
+
+    customerLastDoc = lastDoc;
+    customerHasMore = hasMore;
+
+    const list = document.getElementById('customerList');
+    if (reset) list.innerHTML = '';
+
+    if (customers.length === 0 && reset) {
+      list.innerHTML = '<li><p class="empty-msg">لا يوجد عملاء</p></li>';
+    } else {
+      const branches = await Branches.getAll();
+      const branchMap = {};
+      branches.forEach(b => { branchMap[b.id] = b.name; });
+
+      customers.forEach(c => {
+        const li = document.createElement('li');
+        li.className = 'customer-item';
+        li.innerHTML = `
+          <div>
+            <div class="c-name">${c.name || 'بدون اسم'}</div>
+            <div class="c-phone ltr">${c.phone}</div>
+          </div>
+          <div class="c-branches">
+            ${(c.branches || []).map(bid => branchMap[bid] || '').filter(Boolean).join(' · ')}
+          </div>
+        `;
+        li.addEventListener('click', () => showCustomerProfile(c.id));
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById('loadMoreCustomersBtn').style.display = hasMore ? 'block' : 'none';
+  } catch (err) {
+    document.getElementById('customerList').innerHTML = `<li><p class="error-msg">${err.message}</p></li>`;
+  }
+}
+
+async function loadMoreCustomers() {
+  if (!customerHasMore) return;
+  const branchId = currentBranchFilter;
+  let customers, lastDoc, hasMore;
+
+  if (!branchId) {
+    const snap = await db.collection('customers')
+      .orderBy('lastSeen', 'desc')
+      .startAfter(customerLastDoc)
+      .limit(20).get();
+    customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    lastDoc = snap.docs[snap.docs.length - 1] || null;
+    hasMore = snap.docs.length === 20;
+  } else {
+    const r = await Customers.getForCalling(branchId, customerLastDoc);
+    customers = r.customers; lastDoc = r.lastDoc; hasMore = r.hasMore;
+  }
+
+  customerLastDoc = lastDoc;
+  customerHasMore = hasMore;
+
+  const branches = await Branches.getAll();
+  const branchMap = {};
+  branches.forEach(b => { branchMap[b.id] = b.name; });
+
+  const list = document.getElementById('customerList');
+  customers.forEach(c => {
+    const li = document.createElement('li');
+    li.className = 'customer-item';
+    li.innerHTML = `
+      <div>
+        <div class="c-name">${c.name || 'بدون اسم'}</div>
+        <div class="c-phone ltr">${c.phone}</div>
+      </div>
+      <div class="c-branches">
+        ${(c.branches || []).map(bid => branchMap[bid] || '').filter(Boolean).join(' · ')}
+      </div>
+    `;
+    li.addEventListener('click', () => showCustomerProfile(c.id));
+    list.appendChild(li);
+  });
+
+  document.getElementById('loadMoreCustomersBtn').style.display = hasMore ? 'block' : 'none';
+}
+
+function searchCustomers(val) {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(async () => {
+    if (!val.trim()) { loadCustomers(); return; }
+    const results = await Customers.search(val.trim());
+    const list = document.getElementById('customerList');
+    list.innerHTML = '';
+    if (results.length === 0) {
+      list.innerHTML = '<li><p class="empty-msg">لا توجد نتائج</p></li>';
+      return;
+    }
+    const branches = await Branches.getAll();
+    const branchMap = {};
+    branches.forEach(b => { branchMap[b.id] = b.name; });
+    results.forEach(c => {
+      const li = document.createElement('li');
+      li.className = 'customer-item';
+      li.innerHTML = `
+        <div>
+          <div class="c-name">${c.name || 'بدون اسم'}</div>
+          <div class="c-phone ltr">${c.phone}</div>
+        </div>
+        <div class="c-branches">${(c.branches||[]).map(bid=>branchMap[bid]||'').filter(Boolean).join(' · ')}</div>
+      `;
+      li.addEventListener('click', () => showCustomerProfile(c.id));
+      list.appendChild(li);
+    });
+    document.getElementById('loadMoreCustomersBtn').style.display = 'none';
+  }, 350);
+}
+
+function filterCustomersByBranch(branchId) {
+  currentBranchFilter = branchId;
+  loadCustomers();
+}
+
+// ══════════════════════════════════════
+// CUSTOMER PROFILE
+// ══════════════════════════════════════
+async function showCustomerProfile(customerId) {
+  previousPage = currentPage;
+  showPage('customer-profile');
+
+  const container = document.getElementById('customerProfileContent');
+  container.innerHTML = '<div class="loading-spinner"></div>';
+
+  try {
+    const [customer, surveys, branches, allTags] = await Promise.all([
+      Customers.getById(customerId),
+      Surveys.getByCustomer(customerId),
+      Branches.getAll(),
+      Tags.getAll()
+    ]);
+
+    const branchMap = {};
+    branches.forEach(b => { branchMap[b.id] = b.name; });
+    const tagMap = {};
+    allTags.forEach(t => { tagMap[t.id] = { name: t.name, type: t.type }; });
+
+    const branchNames = (customer.branches || [])
+      .map(bid => branchMap[bid]).filter(Boolean);
+
+    container.innerHTML = `
+      <div class="customer-profile-header">
+        <div class="profile-name">${customer.name || 'بدون اسم'}</div>
+        <span class="profile-phone ltr">${customer.phone}</span>
+        <div class="profile-branches">
+          ${branchNames.map(n => `<span class="branch-badge">${n}</span>`).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">المكالمات السابقة (${surveys.length})</h3>
+        </div>
+        ${surveys.length === 0
+          ? '<p class="empty-msg">لا توجد مكالمات مسجلة</p>'
+          : surveys.map(s => {
+              const date = s.callDate?.toDate ? s.callDate.toDate() : new Date(s.callDate || Date.now());
+              const dateStr = date.toLocaleDateString('ar-SA');
+              const posTags = (s.positives || []).map(id => tagMap[id]?.name || id);
+              const negTags = (s.negatives || []).map(id => tagMap[id]?.name || id);
+
+              return `
+                <div class="survey-history-item ${s.locked ? 'locked' : ''}">
+                  <div class="survey-date">
+                    ${dateStr}
+                    ${s.locked ? '<span class="locked-badge">🔒 مقفل</span>' : ''}
+                  </div>
+                  <div class="survey-tags-row">
+                    ${posTags.map(n => `<span class="survey-tag positive">${n}</span>`).join('')}
+                    ${negTags.map(n => `<span class="survey-tag negative">${n}</span>`).join('')}
+                  </div>
+                  ${s.positiveNotes ? `<p style="font-size:.85rem;margin-top:.4rem;color:var(--pos)">✦ ${s.positiveNotes}</p>` : ''}
+                  ${s.negativeNotes ? `<p style="font-size:.85rem;margin-top:.2rem;color:var(--neg)">◈ ${s.negativeNotes}</p>` : ''}
+                  ${s.audioFile ? `<audio controls src="${s._audioUrl || ''}"></audio>` : ''}
+                </div>
+              `;
+            }).join('')
+        }
+      </div>
+    `;
+
+    // جلب URLs للتسجيلات
+    surveys.forEach(async (s, i) => {
+      if (s.audioFile) {
+        try {
+          const url = await storage.ref(s.audioFile).getDownloadURL();
+          const audios = container.querySelectorAll('audio');
+          if (audios[i]) audios[i].src = url;
+        } catch(e) {}
+      }
+    });
+
+  } catch (err) {
+    container.innerHTML = `<p class="error-msg">خطأ في تحميل السجل: ${err.message}</p>`;
+  }
+}
+
+// ══════════════════════════════════════
+// IMPORT
+// ══════════════════════════════════════
+let importMode = 'text';
+let excelFile = null;
+
+function initImportPage() {
+  document.getElementById('importResult').style.display = 'none';
+  document.getElementById('importProgressWrap').style.display = 'none';
+  Branches.buildSelect(document.getElementById('importBranchSelect'));
+}
+
+function switchImportTab(mode, btn) {
+  importMode = mode;
+  document.querySelectorAll('.import-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('textImportSection').style.display = mode === 'text' ? 'block' : 'none';
+  document.getElementById('excelImportSection').style.display = mode === 'excel' ? 'block' : 'none';
+}
+
+function handleExcelSelect(input) {
+  if (input.files[0]) {
+    excelFile = input.files[0];
+    document.getElementById('excelFileName').style.display = 'block';
+    document.getElementById('excelFileName').textContent = '✅ ' + input.files[0].name;
+  }
+}
+
+// نقر منطقة Excel
+document.getElementById('excelDropArea')?.addEventListener('click', () => {
+  document.getElementById('excelFileInput').click();
+});
+
+async function doImport() {
+  const branchId = document.getElementById('importBranchSelect').value;
+  if (!branchId) { showToast('اختر الفرع أولاً', 'error'); return; }
+
+  const btn = document.getElementById('importBtn');
+  const progressWrap = document.getElementById('importProgressWrap');
+  const progressFill = document.getElementById('importProgressFill');
+  const resultDiv = document.getElementById('importResult');
+
+  btn.disabled = true;
+  btn.textContent = 'جاري الاستيراد...';
+  progressWrap.style.display = 'block';
+  resultDiv.style.display = 'none';
+  progressFill.style.width = '0%';
+
+  const onProgress = (done, total) => {
+    progressFill.style.width = Math.round(done / total * 100) + '%';
+  };
+
+  try {
+    let results;
+    if (importMode === 'text') {
+      const text = document.getElementById('importTextArea').value;
+      if (!text.trim()) { showToast('أدخل البيانات أولاً', 'error'); return; }
+      results = await Customers.importFromText(text, branchId, onProgress);
+    } else {
+      if (!excelFile) { showToast('اختر ملف Excel أولاً', 'error'); return; }
+      results = await Customers.importFromExcel(excelFile, branchId, onProgress);
+    }
+
+    progressFill.style.width = '100%';
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = `
+      <strong>✅ اكتمل الاستيراد</strong><br>
+      جديد: ${results.added} | محدّث: ${results.updated}<br>
+      ${results.errors.length > 0
+        ? `<span style="color:var(--neg)">أخطاء (${results.errors.length}): ${results.errors.slice(0,3).join('، ')}</span>`
+        : ''}
+    `;
+    showToast(`تم استيراد ${results.added + results.updated} عميل`, 'success');
+    Branches.invalidateCache();
+
+  } catch (err) {
+    showToast('خطأ: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'بدء الاستيراد';
+    setTimeout(() => { progressWrap.style.display = 'none'; }, 1500);
+  }
+}
+
+// ══════════════════════════════════════
+// REPORTS
+// ══════════════════════════════════════
+let reportBranchId = null;
+
+async function loadReports() {
+  // بناء فلتر الفروع
+  const filterBar = document.getElementById('reportBranchFilter');
+  const branches = await Branches.getAll();
+  filterBar.innerHTML = `<button class="branch-filter-btn active" data-branch="" onclick="selectReportBranch('', this)">جميع الفروع</button>`;
+  branches.forEach(b => {
+    filterBar.innerHTML += `<button class="branch-filter-btn" data-branch="${b.id}" onclick="selectReportBranch('${b.id}', this)">${b.name}</button>`;
+  });
+
+  // تحميل التقارير
+  await Reports.renderTagReport('tagReportContainer', reportBranchId || null);
+
+  // مقارنة الفروع فقط للمالك وجميع الفروع
+  if (Auth.isOwner() && !reportBranchId) {
+    document.getElementById('branchComparisonCard').style.display = 'block';
+    await Reports.renderBranchComparison('branchComparisonContainer');
+  } else {
+    document.getElementById('branchComparisonCard').style.display = 'none';
+  }
+
+  await loadSnippets();
+}
+
+async function selectReportBranch(branchId, btn) {
+  document.querySelectorAll('.branch-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  reportBranchId = branchId || null;
+  await Reports.renderTagReport('tagReportContainer', reportBranchId);
+
+  if (Auth.isOwner() && !reportBranchId) {
+    document.getElementById('branchComparisonCard').style.display = 'block';
+    await Reports.renderBranchComparison('branchComparisonContainer');
+  } else {
+    document.getElementById('branchComparisonCard').style.display = 'none';
+  }
+}
+
+async function loadSnippets() {
+  await Reports.renderSnippets('snippetsContainer');
+}
+
+// ══════════════════════════════════════
+// ADMIN
+// ══════════════════════════════════════
+async function loadAdmin() {
+  if (!Auth.isOwner()) {
+    showPage('dashboard');
+    return;
+  }
+  await Promise.all([loadBranches(), loadTagsAdmin()]);
+}
+
+// الفروع
+async function loadBranches() {
+  Branches.invalidateCache();
+  const branches = await Branches.getAll();
+  const list = document.getElementById('branchList');
+  list.innerHTML = branches.length === 0
+    ? '<li><p class="empty-msg">لا توجد فروع</p></li>'
+    : branches.map(b => `
+        <li class="admin-item">
+          <span class="admin-item-name">${b.name}</span>
+          <div class="admin-item-actions">
+            <button class="btn btn-ghost btn-sm" onclick="editBranch('${b.id}', '${b.name}')">تعديل</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteBranch('${b.id}', '${b.name}')">حذف</button>
+          </div>
+        </li>`).join('');
+}
+
+function showAddBranch() { document.getElementById('addBranchForm').style.display = 'flex'; }
+function hideAddBranch() { document.getElementById('addBranchForm').style.display = 'none'; document.getElementById('newBranchName').value = ''; }
+
+async function addBranch() {
+  const name = document.getElementById('newBranchName').value.trim();
+  if (!name) return;
+  try {
+    await Branches.add(name);
+    showToast('تمت إضافة الفرع', 'success');
+    hideAddBranch();
+    await loadBranches();
+    await initBranchSelects();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function editBranch(id, oldName) {
+  const name = prompt('اسم الفرع الجديد:', oldName);
+  if (!name || name.trim() === oldName) return;
+  try {
+    await Branches.update(id, name);
+    showToast('تم التعديل', 'success');
+    await loadBranches();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function deleteBranch(id, name) {
+  if (!confirm(`هل تريد حذف فرع "${name}"؟`)) return;
+  try {
+    await Branches.remove(id);
+    showToast('تم الحذف', 'success');
+    await loadBranches();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// الوسوم
+async function loadTagsAdmin() {
+  const [posTags, negTags] = await Promise.all([
+    Tags.getByType('positive'),
+    Tags.getByType('negative')
+  ]);
+  renderTagList('posTagList', posTags, 'positive');
+  renderTagList('negTagList', negTags, 'negative');
+}
+
+function renderTagList(listId, tags, type) {
+  const list = document.getElementById(listId);
+  list.innerHTML = tags.length === 0
+    ? '<li><p class="empty-msg" style="padding:.5rem">لا توجد وسوم</p></li>'
+    : tags.map(t => `
+        <li class="admin-item">
+          <span class="admin-item-name">${t.name}</span>
+          <div class="admin-item-actions">
+            <button class="btn btn-ghost btn-sm" onclick="editTag('${t.id}', '${t.name}')">تعديل</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteTag('${t.id}', '${t.name}')">حذف</button>
+          </div>
+        </li>`).join('');
+}
+
+function showAddTag(type) {
+  document.getElementById(`addPosTagForm`).style.display = type === 'positive' ? 'flex' : 'none';
+  document.getElementById(`addNegTagForm`).style.display = type === 'negative' ? 'flex' : 'none';
+}
+function hideAddTag(type) {
+  document.getElementById(`add${type === 'positive' ? 'Pos' : 'Neg'}TagForm`).style.display = 'none';
+  document.getElementById(`new${type === 'positive' ? 'Pos' : 'Neg'}TagName`).value = '';
+}
+
+async function addTag(type) {
+  const inputId = `new${type === 'positive' ? 'Pos' : 'Neg'}TagName`;
+  const name = document.getElementById(inputId).value.trim();
+  if (!name) return;
+  try {
+    await Tags.add(name, type);
+    Tags.invalidateCache();
+    showToast('تمت إضافة الوسم', 'success');
+    hideAddTag(type);
+    await loadTagsAdmin();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function editTag(id, oldName) {
+  const name = prompt('اسم الوسم الجديد:', oldName);
+  if (!name || name.trim() === oldName) return;
+  try {
+    await Tags.update(id, name);
+    Tags.invalidateCache();
+    showToast('تم التعديل', 'success');
+    await loadTagsAdmin();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function deleteTag(id, name) {
+  if (!confirm(`هل تريد حذف وسم "${name}"؟`)) return;
+  try {
+    await Tags.remove(id);
+    Tags.invalidateCache();
+    showToast('تم الحذف', 'success');
+    await loadTagsAdmin();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+</script>
+</body>
+</html>

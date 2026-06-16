@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول - نظام رضا العملاء</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body { background: var(--ink); }
+    .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .login-box { background: var(--white); border-radius: 20px; padding: 2.5rem 2rem; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    .brand-mark {
+      width: 56px; height: 56px; background: var(--accent); border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; margin: 0 auto 1.25rem;
+    }
+    .login-title { text-align: center; font-size: 1.4rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .login-sub { text-align: center; color: var(--ink-3); font-size: 0.88rem; margin-bottom: 1.75rem; }
+    .error-banner {
+      background: var(--neg-bg); color: var(--neg);
+      border-radius: var(--radius-sm); padding: 0.65rem 0.9rem;
+      font-size: 0.85rem; margin-bottom: 1rem; display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-box">
+    <div class="brand-mark">📋</div>
+    <h1 class="login-title">نظام رضا العملاء</h1>
+    <p class="login-sub">تسجيل الدخول للمتابعة</p>
+
+    <div class="error-banner" id="errorBanner"></div>
+
+    <div class="form-group">
+      <label class="form-label">البريد الإلكتروني</label>
+      <input type="email" class="form-control" id="emailInput" placeholder="example@domain.com" autocomplete="email" dir="ltr">
+    </div>
+    <div class="form-group">
+      <label class="form-label">كلمة المرور</label>
+      <input type="password" class="form-control" id="passwordInput" placeholder="••••••••" autocomplete="current-password" dir="ltr">
+    </div>
+    <button class="btn btn-primary btn-block btn-xl" id="loginBtn" onclick="doLogin()">
+      دخول
+    </button>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  // إذا مسجل دخوله، انتقل مباشرة
+  auth.onAuthStateChanged(user => {
+    if (user) window.location.href = 'dashboard.html';
+  });
+
+  async function doLogin() {
+    const email = document.getElementById('emailInput').value.trim();
+    const password = document.getElementById('passwordInput').value;
+    const btn = document.getElementById('loginBtn');
+    const err = document.getElementById('errorBanner');
+
+    err.style.display = 'none';
+    if (!email || !password) { showErr('يرجى إدخال البريد وكلمة المرور'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'جاري الدخول...';
+
+    try {
+      await Auth.login(email, password);
+      window.location.href = 'dashboard.html';
+    } catch (e) {
+      showErr(e);
+      btn.disabled = false;
+      btn.textContent = 'دخول';
+    }
+  }
+
+  function showErr(msg) {
+    const err = document.getElementById('errorBanner');
+    err.textContent = msg;
+    err.style.display = 'block';
+  }
+
+  // Enter key
+  document.getElementById('passwordInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+</script>
+</body>
+</html>
