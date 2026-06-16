@@ -178,10 +178,10 @@ async function loadDashboard() {
   });
 
   $("kpi-grid").innerHTML = `
-    <div class="kpi-card"><div class="kpi-value">${total}</div><div class="kpi-label">العملاء</div></div>
-    <div class="kpi-card"><div class="kpi-value">${surveys}</div><div class="kpi-label">الاستطلاعات</div></div>
+    <div class="kpi-card"><div class="kpi-value">${total}</div><div class="kpi-label">إجمالي العملاء</div></div>
+    <div class="kpi-card"><div class="kpi-value">${surveys}</div><div class="kpi-label">الاستطلاعات المنجزة</div></div>
     <div class="kpi-card"><div class="kpi-value">${rate}%</div><div class="kpi-label">نسبة التواصل</div></div>
-    <div class="kpi-card"><div class="kpi-value">${branches.length}</div><div class="kpi-label">الفروع</div></div>
+    <div class="kpi-card"><div class="kpi-value">${branches.length}</div><div class="kpi-label">الفروع المسجلة</div></div>
   `;
 
   renderMiniBar("dash-pos", posCnt, tagMap, "pos");
@@ -194,7 +194,7 @@ function renderMiniBar(id, counts, tagMap, cls) {
     .sort((a, b) => b.count - a.count).slice(0, 5);
   const max = sorted[0]?.count || 1;
   $(id).innerHTML = sorted.length === 0
-    ? '<p class="empty" style="padding:.5rem">لا بيانات بعد</p>'
+    ? '<p class="empty" style="padding:.5rem">لا توجد بيانات متاحة بعد</p>'
     : sorted.map(t => `
         <div class="bar-item">
           <div class="bar-label"><span>${t.name}</span><span class="bar-count">${t.count}</span></div>
@@ -215,7 +215,7 @@ async function initCallPage() {
 
 window.startCalling = async function () {
   const branchId = $("call-branch-sel").value;
-  if (!branchId) { toast("اختر الفرع أولاً", "err"); return; }
+  if (!branchId) { toast("يرجى اختيار الفرع أولاً", "err"); return; }
   callBranchId = branchId;
   callQueue    = [];
   callIdx      = 0;
@@ -223,7 +223,7 @@ window.startCalling = async function () {
 
   await loadCallBatch();
 
-  if (callQueue.length === 0) { toast("لا يوجد عملاء في هذا الفرع", "err"); return; }
+  if (callQueue.length === 0) { toast("لا يوجد عملاء متاحين في هذا الفرع", "err"); return; }
 
   $("call-setup").style.display    = "none";
   $("call-interface").style.display = "block";
@@ -250,10 +250,12 @@ function renderCallCustomer() {
   if (callIdx >= callQueue.length) {
     if (callHasMore) { loadCallBatch().then(renderCallCustomer); return; }
     $("call-interface").innerHTML = `
-      <div class="card" style="text-align:center;padding:2rem">
-        <div style="font-size:2.5rem">✅</div>
-        <h3 style="margin:.75rem 0 .4rem">انتهت القائمة</h3>
-        <p class="empty" style="padding:0 0 1rem">تم إجراء ${callIdx} محادثة</p>
+      <div class="card" style="text-align:center;padding:3rem 2rem">
+        <div style="color:var(--pos);margin-bottom:1rem">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        </div>
+        <h3 style="margin:.75rem 0 .4rem;color:var(--ink)">انتهت القائمة بنجاح</h3>
+        <p class="empty" style="padding:0 0 1.5rem">تم إجراء ${callIdx} محادثة</p>
         <button class="btn btn-primary" onclick="resetCallScreen()">اختيار فرع آخر</button>
       </div>`;
     return;
@@ -265,7 +267,7 @@ function renderCallCustomer() {
 
   $("call-progress-txt").textContent = `${callIdx} / ${tot}`;
   $("call-pbar").style.width         = pct + "%";
-  $("call-name").textContent  = c.name || "بدون اسم";
+  $("call-name").textContent  = c.name || "غير مسجل";
   $("call-phone").textContent = c.phone;
   $("call-tel").href          = "tel:" + c.phone;
 
@@ -306,14 +308,14 @@ window.saveSurveyAndNext = async function () {
 
     await updateDoc(doc(db, "customers", c.id), { lastSeen: serverTimestamp() });
 
-    toast("تم الحفظ ✓", "ok");
+    toast("تم الحفظ بنجاح", "ok");
     callIdx++;
     renderCallCustomer();
   } catch (e) {
-    toast("خطأ: " + e.message, "err");
+    toast("عذراً، حدث خطأ: " + e.message, "err");
   } finally {
     btn.disabled    = false;
-    btn.textContent = "حفظ والانتقال للعميل التالي ←";
+    btn.innerHTML   = `حفظ والانتقال للعميل التالي <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`;
   }
 };
 
@@ -352,14 +354,14 @@ async function loadCustomers(append = false) {
     if (!append) list.innerHTML = "";
 
     if (custs.length === 0 && !append) {
-      list.innerHTML = '<p class="empty">لا يوجد عملاء</p>';
+      list.innerHTML = '<p class="empty">لا يوجد عملاء مسجلين</p>';
     } else {
       custs.forEach(c => {
         const li = document.createElement("li");
         li.className = "c-item";
         li.innerHTML = `
-          <div>
-            <div class="c-name">${c.name || "بدون اسم"}</div>
+          <div style="flex:1">
+            <div class="c-name">${c.name || "غير مسجل"}</div>
             <div class="c-phone ltr">${c.phone}</div>
           </div>
           <div class="c-meta">${(c.branches || []).map(id => bMap[id] || "").filter(Boolean).join(" · ")}</div>
@@ -412,13 +414,13 @@ async function renderSearchResults(custs) {
   branches.forEach(b => (bMap[b.id] = b.name));
   const list = $("cust-list");
   list.innerHTML = "";
-  if (custs.length === 0) { list.innerHTML = '<p class="empty">لا نتائج</p>'; return; }
+  if (custs.length === 0) { list.innerHTML = '<p class="empty">لا توجد نتائج مطابقة</p>'; return; }
   custs.forEach(c => {
     const li = document.createElement("li");
     li.className = "c-item";
     li.innerHTML = `
-      <div>
-        <div class="c-name">${c.name || "بدون اسم"}</div>
+      <div style="flex:1">
+        <div class="c-name">${c.name || "غير مسجل"}</div>
         <div class="c-phone ltr">${c.phone}</div>
       </div>
       <div class="c-meta">${(c.branches || []).map(id => bMap[id] || "").filter(Boolean).join(" · ")}</div>
@@ -469,7 +471,7 @@ async function openProfile(custId) {
 
     $("profile-content").innerHTML = `
       <div class="profile-header">
-        <div class="profile-name">${c.name || "بدون اسم"}</div>
+        <div class="profile-name">${c.name || "غير مسجل"}</div>
         <span class="profile-phone ltr">${c.phone}</span>
         <div class="profile-tags">
           ${branchNames.map(n => `<span class="branch-badge">${n}</span>`).join("")}
@@ -481,7 +483,7 @@ async function openProfile(custId) {
           <span class="card-title">المكالمات السابقة (${surveys.length})</span>
         </div>
         ${surveys.length === 0
-          ? '<p class="empty">لا توجد مكالمات بعد</p>'
+          ? '<p class="empty">لا يوجد سجل مكالمات مسبق</p>'
           : surveys.map(s => {
               const posTags = (s.positives || []).map(id => tMap[id]?.name || id);
               const negTags = (s.negatives || []).map(id => tMap[id]?.name || id);
@@ -489,14 +491,14 @@ async function openProfile(custId) {
                 <div class="survey-item ${s.locked ? "locked" : ""}">
                   <div class="survey-date">
                     ${formatDate(s.callDate)}
-                    ${s.locked ? '<span class="locked-pill">🔒 مقفل</span>' : ""}
+                    ${s.locked ? '<span class="locked-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> مقفل</span>' : ""}
                   </div>
                   <div class="stags">
                     ${posTags.map(n => `<span class="stag pos">${n}</span>`).join("")}
                     ${negTags.map(n => `<span class="stag neg">${n}</span>`).join("")}
                   </div>
-                  ${s.positiveNotes ? `<div class="survey-note pos">✦ ${s.positiveNotes}</div>` : ""}
-                  ${s.negativeNotes ? `<div class="survey-note neg">◈ ${s.negativeNotes}</div>` : ""}
+                  ${s.positiveNotes ? `<div class="survey-note pos">${s.positiveNotes}</div>` : ""}
+                  ${s.negativeNotes ? `<div class="survey-note neg">${s.negativeNotes}</div>` : ""}
                 </div>`;
             }).join("")
         }
@@ -531,21 +533,22 @@ window.switchImportTab = function (mode, btn) {
 window.handleXlsx = function (input) {
   if (input.files[0]) {
     xlsxFile = input.files[0];
-    $("xlsx-name").textContent = "✅ " + input.files[0].name;
-    $("xlsx-name").style.display = "block";
+    $("xlsx-name").innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> ملف: ` + input.files[0].name;
+    $("xlsx-name").style.display = "flex";
+    $("xlsx-name").style.alignItems = "center";
   }
 };
 
 window.doImport = async function () {
   const branchId = $("import-branch-sel").value;
-  if (!branchId) { toast("اختر الفرع أولاً", "err"); return; }
+  if (!branchId) { toast("يرجى اختيار الفرع للبدء", "err"); return; }
 
   const btn  = $("import-btn");
   const prog = $("prog-wrap");
   const fill = $("prog-fill");
 
   btn.disabled    = true;
-  btn.textContent = "جاري الاستيراد...";
+  btn.textContent = "جاري الاستيراد والمعالجة...";
   prog.style.display = "block";
   fill.style.width   = "0%";
   $("import-result").style.display = "none";
@@ -557,31 +560,34 @@ window.doImport = async function () {
 
     if (importMode === "text") {
       const raw = $("import-text").value.trim();
-      if (!raw) { toast("أدخل البيانات أولاً", "err"); return; }
+      if (!raw) { toast("يرجى إدخال البيانات النصية أولاً", "err"); return; }
       entries = parseText(raw);
     } else {
-      if (!xlsxFile) { toast("اختر ملف Excel أولاً", "err"); return; }
+      if (!xlsxFile) { toast("يرجى إرفاق ملف Excel أولاً", "err"); return; }
       entries = await parseXlsx(xlsxFile);
     }
 
-    if (entries.length === 0) { toast("لم يُعثر على أرقام صالحة", "err"); return; }
+    if (entries.length === 0) { toast("لم يُعثر على أرقام صالحة للإدخال", "err"); return; }
 
     const results = await upsertCustomers(entries, branchId, onProg);
 
     fill.style.width = "100%";
     $("import-result").style.display = "block";
     $("import-result").innerHTML = `
-      ✅ <strong>اكتمل الاستيراد</strong><br>
-      جديد: ${results.added} &nbsp;|&nbsp; محدّث: ${results.updated}<br>
+      <div style="display:flex;align-items:center;gap:.4rem;color:var(--pos);margin-bottom:.5rem;font-size:1rem;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        <strong>اكتمل الاستيراد بنجاح</strong>
+      </div>
+      عملاء جدد: ${results.added} &nbsp;|&nbsp; تم التحديث: ${results.updated}<br>
       ${results.errors.length > 0
-        ? `<span style="color:var(--neg)">أخطاء (${results.errors.length}): ${results.errors.slice(0, 3).join("، ")}</span>`
+        ? `<span style="color:var(--neg);display:block;margin-top:.5rem;">أخطاء (${results.errors.length}): ${results.errors.slice(0, 3).join("، ")}</span>`
         : ""}
     `;
-    toast(`تم استيراد ${results.added + results.updated} عميل`, "ok");
+    toast(`تم استيراد ومعالجة ${results.added + results.updated} عميل`, "ok");
     clearBranchCache();
 
   } catch (e) {
-    toast("خطأ: " + e.message, "err");
+    toast("عذراً، حدث خطأ: " + e.message, "err");
   } finally {
     btn.disabled    = false;
     btn.textContent = "بدء الاستيراد";
@@ -708,17 +714,17 @@ async function renderTagReport() {
   $("tag-report").innerHTML = `
     <div class="report-grid">
       <div>
-        <div class="rep-section-title pos">✦ أكثر الإشادات</div>
-        ${sortedPos.length === 0 ? '<p class="empty" style="padding:.5rem">لا بيانات</p>'
+        <div class="rep-section-title pos">أكثر الإشادات تسجيلاً</div>
+        ${sortedPos.length === 0 ? '<p class="empty" style="padding:.5rem">لا توجد بيانات متاحة</p>'
           : sortedPos.map(t => barHTML(t.name, t.count, maxP, "pos")).join("")}
       </div>
       <div>
-        <div class="rep-section-title neg">◈ أكثر الشكاوى</div>
-        ${sortedNeg.length === 0 ? '<p class="empty" style="padding:.5rem">لا بيانات</p>'
+        <div class="rep-section-title neg">أكثر الشكاوى تسجيلاً</div>
+        ${sortedNeg.length === 0 ? '<p class="empty" style="padding:.5rem">لا توجد بيانات متاحة</p>'
           : sortedNeg.map(t => barHTML(t.name, t.count, maxN, "neg")).join("")}
       </div>
     </div>
-    <p style="font-size:.8rem;color:var(--ink-3);text-align:center;margin-top:.75rem">إجمالي الاستطلاعات: ${snap.size}</p>
+    <p style="font-size:.85rem;color:var(--ink-3);text-align:center;margin-top:1.25rem;font-weight:500;">إجمالي الاستطلاعات التي شملها التقرير: ${snap.size}</p>
   `;
 }
 
@@ -746,7 +752,7 @@ async function renderBranchCmp() {
   });
   const rows = Object.values(stats);
   $("branch-cmp").innerHTML = rows.length === 0
-    ? '<p class="empty">لا بيانات</p>'
+    ? '<p class="empty">لا توجد بيانات للمقارنة</p>'
     : `<div style="overflow-x:auto"><table class="cmp-table">
         <thead><tr><th>الفرع</th><th>الاستطلاعات</th><th>الإشادات</th><th>الشكاوى</th></tr></thead>
         <tbody>${rows.map(r => `
@@ -775,7 +781,7 @@ async function renderSnippets() {
   }
   const pick = all.slice(0, 6);
   $("snippets").innerHTML = pick.length === 0
-    ? '<p class="empty">لا توجد ملاحظات بعد</p>'
+    ? '<p class="empty">لا توجد ملاحظات مسجلة بعد</p>'
     : pick.map(s => `<div class="snippet ${s.type}">"${s.text}"</div>`).join("");
 }
 
@@ -793,12 +799,12 @@ async function loadBranchAdmin() {
   clearBranchCache();
   const branches = await getBranches();
   $("branch-list").innerHTML = branches.length === 0
-    ? '<p class="empty">لا توجد فروع</p>'
+    ? '<p class="empty">لا توجد فروع مسجلة</p>'
     : branches.map(b => `
         <li class="admin-item">
           <span class="admin-name">${b.name}</span>
           <div class="admin-actions">
-            <button class="btn btn-ghost btn-sm" onclick="editBranch('${b.id}','${b.name.replace(/'/g,"\\'")}')">تعديل</button>
+            <button class="btn btn-secondary btn-sm" onclick="editBranch('${b.id}','${b.name.replace(/'/g,"\\'")}')">تعديل</button>
             <button class="btn btn-danger btn-sm" onclick="deleteBranch('${b.id}','${b.name.replace(/'/g,"\\'")}')">حذف</button>
           </div>
         </li>`).join("");
@@ -814,7 +820,7 @@ window.addBranch = async function () {
   if (!name) return;
   try {
     await addDoc(collection(db, "branches"), { name, createdAt: serverTimestamp() });
-    toast("تمت الإضافة", "ok");
+    toast("تمت الإضافة بنجاح", "ok");
     $("new-branch-name").value = "";
     $("add-branch-form").classList.remove("show");
     loadBranchAdmin();
@@ -827,20 +833,20 @@ window.addBranch = async function () {
 };
 
 window.editBranch = async function (id, old) {
-  const name = prompt("اسم الفرع الجديد:", old);
+  const name = prompt("تعديل اسم الفرع:", old);
   if (!name || name.trim() === old) return;
   await updateDoc(doc(db, "branches", id), { name: name.trim() });
-  toast("تم التعديل", "ok");
+  toast("تم التعديل بنجاح", "ok");
   clearBranchCache();
   loadBranchAdmin();
 };
 
 window.deleteBranch = async function (id, name) {
-  if (!confirm(`حذف فرع "${name}"؟`)) return;
+  if (!confirm(`هل أنت متأكد من حذف فرع "${name}"؟`)) return;
   const snap = await getDocs(query(collection(db, "customers"), where("branches", "array-contains", id), limit(1)));
-  if (!snap.empty) { toast("لا يمكن حذف فرع مرتبط بعملاء", "err"); return; }
+  if (!snap.empty) { toast("لا يمكن حذف فرع مرتبط بسجلات عملاء حالية", "err"); return; }
   await deleteDoc(doc(db, "branches", id));
-  toast("تم الحذف", "ok");
+  toast("تم الحذف بنجاح", "ok");
   clearBranchCache();
   loadBranchAdmin();
 };
@@ -855,12 +861,12 @@ async function loadTagsAdmin() {
 
 function renderTagAdmin(listId, tags, type) {
   $(listId).innerHTML = tags.length === 0
-    ? '<p class="empty" style="padding:.5rem">لا توجد وسوم</p>'
+    ? '<p class="empty" style="padding:.5rem">القائمة فارغة</p>'
     : tags.map(t => `
         <li class="admin-item">
           <span class="admin-name">${t.name}</span>
           <div class="admin-actions">
-            <button class="btn btn-ghost btn-sm" onclick="editTag('${t.id}','${t.name.replace(/'/g,"\\'")}')">تعديل</button>
+            <button class="btn btn-secondary btn-sm" onclick="editTag('${t.id}','${t.name.replace(/'/g,"\\'")}')">تعديل</button>
             <button class="btn btn-danger btn-sm" onclick="deleteTag('${t.id}','${t.name.replace(/'/g,"\\'")}','${type}')">حذف</button>
           </div>
         </li>`).join("");
@@ -877,7 +883,7 @@ window.addTag = async function (type) {
   const name    = $(inputId).value.trim();
   if (!name) return;
   await addDoc(collection(db, "tags"), { name, type, createdAt: serverTimestamp() });
-  toast("تمت الإضافة", "ok");
+  toast("تمت الإضافة بنجاح", "ok");
   $(inputId).value = "";
   $(`add-${type === "positive" ? "pos" : "neg"}-tag-form`).classList.remove("show");
   clearTagCache();
@@ -885,21 +891,21 @@ window.addTag = async function (type) {
 };
 
 window.editTag = async function (id, old) {
-  const name = prompt("اسم الوسم الجديد:", old);
+  const name = prompt("تعديل اسم الوسم:", old);
   if (!name || name.trim() === old) return;
   await updateDoc(doc(db, "tags", id), { name: name.trim() });
-  toast("تم التعديل", "ok");
+  toast("تم التعديل بنجاح", "ok");
   clearTagCache();
   loadTagsAdmin();
 };
 
 window.deleteTag = async function (id, name, type) {
-  if (!confirm(`حذف وسم "${name}"؟`)) return;
+  if (!confirm(`هل أنت متأكد من حذف الوسم "${name}"؟`)) return;
   const field = type === "positive" ? "positives" : "negatives";
   const snap  = await getDocs(query(collection(db, "surveys"), where(field, "array-contains", id), limit(1)));
-  if (!snap.empty) { toast("الوسم مستخدم في استطلاعات ولا يمكن حذفه", "err"); return; }
+  if (!snap.empty) { toast("لا يمكن الحذف: الوسم مرتبط باستطلاعات سابقة", "err"); return; }
   await deleteDoc(doc(db, "tags", id));
-  toast("تم الحذف", "ok");
+  toast("تم الحذف بنجاح", "ok");
   clearTagCache();
   loadTagsAdmin();
 };
