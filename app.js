@@ -34,8 +34,6 @@ let tagCache     = null;
 let callQueue    = [];
 let callIdx      = 0;
 let callBranchId = null;
-let callLastDoc  = null;
-let callHasMore  = false;
 
 // customers list state
 let custLastDoc  = null;
@@ -54,7 +52,6 @@ const qs = sel => document.querySelector(sel);
 
 function toast(msg, type = "") {
   const t = $("toast");
-  if (!t) return;
   t.textContent = msg;
   t.className   = "toast show " + type;
   setTimeout(() => (t.className = "toast"), 2600);
@@ -62,13 +59,10 @@ function toast(msg, type = "") {
 
 function showPage(name, navEl) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  const targetPage = $("page-" + name);
-  if (targetPage) targetPage.classList.add("active");
-  
+  $("page-" + name).classList.add("active");
   document.querySelectorAll(".bnav-item").forEach(b => b.classList.remove("active"));
-  if (navEl) {
-    navEl.classList.add("active");
-  } else {
+  if (navEl) navEl.classList.add("active");
+  else {
     const found = qs(`.bnav-item[data-p="${name}"]`);
     if (found) found.classList.add("active");
   }
@@ -79,10 +73,7 @@ function showPage(name, navEl) {
 
 function goBack() { showPage(prevPage || "dashboard"); }
 
-function loading(id) { 
-  const el = $(id);
-  if (el) el.innerHTML = '<div class="loading"></div>'; 
-}
+function loading(id) { $(id).innerHTML = '<div class="loading"></div>'; }
 
 function formatDate(ts) {
   if (!ts) return "—";
@@ -140,7 +131,6 @@ function clearTagCache() { tagCache = null; }
 function buildTagButtons(containerId, type, selectedIds = []) {
   getTags().then(tags => {
     const cont = $(containerId);
-    if (!cont) return;
     cont.innerHTML = "";
     tags.filter(t => t.type === type).forEach(t => {
       const btn = document.createElement("button");
@@ -155,17 +145,14 @@ function buildTagButtons(containerId, type, selectedIds = []) {
 }
 
 function getSelectedTags(containerId) {
-  const cont = $(containerId);
-  if (!cont) return [];
-  return [...cont.querySelectorAll(".tag-btn.on")].map(b => b.dataset.id);
+  return [...$(containerId).querySelectorAll(".tag-btn.on")].map(b => b.dataset.id);
 }
 
 // ══════════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════════
 async function loadDashboard() {
-  const grid = $("kpi-grid");
-  if (grid) grid.innerHTML = '<div class="loading" style="margin:.5rem auto;width:22px;height:22px;border-width:2px"></div>';
+  $("kpi-grid").innerHTML = '<div class="loading" style="margin:.5rem auto;width:22px;height:22px;border-width:2px"></div>';
 
   const [surveysSnap, custSnap, branches, tags] = await Promise.all([
     getDocs(collection(db, "surveys")),
@@ -187,27 +174,23 @@ async function loadDashboard() {
     (s.negatives || []).forEach(id => (negCnt[id] = (negCnt[id] || 0) + 1));
   });
 
-  if (grid) {
-    grid.innerHTML = `
-      <div class="kpi-card"><div class="kpi-value">${total}</div><div class="kpi-label">العملاء</div></div>
-      <div class="kpi-card"><div class="kpi-value">${surveys}</div><div class="kpi-label">الاستطلاعات</div></div>
-      <div class="kpi-card"><div class="kpi-value">${rate}%</div><div class="kpi-label">نسبة التواصل</div></div>
-      <div class="kpi-card"><div class="kpi-value">${branches.length}</div><div class="kpi-label">الفروع</div></div>
-    `;
-  }
+  $("kpi-grid").innerHTML = `
+    <div class="kpi-card"><div class="kpi-value">${total}</div><div class="kpi-label">العملاء</div></div>
+    <div class="kpi-card"><div class="kpi-value">${surveys}</div><div class="kpi-label">الاستطلاعات</div></div>
+    <div class="kpi-card"><div class="kpi-value">${rate}%</div><div class="kpi-label">نسبة التواصل</div></div>
+    <div class="kpi-card"><div class="kpi-value">${branches.length}</div><div class="kpi-label">الفروع</div></div>
+  `;
 
   renderMiniBar("dash-pos", posCnt, tagMap, "pos");
   renderMiniBar("dash-neg", negCnt, tagMap, "neg");
 }
 
 function renderMiniBar(id, counts, tagMap, cls) {
-  const cont = $(id);
-  if (!cont) return;
   const sorted = Object.entries(counts)
     .map(([k, v]) => ({ name: tagMap[k] || k, count: v }))
     .sort((a, b) => b.count - a.count).slice(0, 5);
   const max = sorted[0]?.count || 1;
-  cont.innerHTML = sorted.length === 0
+  $(id).innerHTML = sorted.length === 0
     ? '<p class="empty" style="padding:.5rem">لا بيانات بعد</p>'
     : sorted.map(t => `
         <div class="bar-item">
@@ -227,42 +210,37 @@ async function initCallPage() {
   }
 }
 
-async function startCalling() {
+window.startCalling = async function () {
   const branchId = $("call-branch-sel").value;
   if (!branchId) { toast("اختر الفرع أولاً", "err"); return; }
   callBranchId = branchId;
   callQueue    = [];
   callIdx      = 0;
-  callLastDoc  = null;
 
-  await loadCallBatch();
+  // جلب جميع العملاء في الفرع (بدون orderBy لتجنب فهرس مركب)
+  try {
+    const snap = await getDocs(query(collection(db, "customers"), where("branches", "array-contains", branchId)));
+    callQueue = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // ترتيب حسب lastSeen (الأقدم أولاً للاتصال)
+    callQueue.sort((a, b) => (a.lastSeen?.toMillis?.() || 0) - (b.lastSeen?.toMillis?.() || 0));
+  } catch (e) {
+    toast("خطأ في جلب العملاء: " + e.message, "err");
+    return;
+  }
 
   if (callQueue.length === 0) { toast("لا يوجد عملاء في هذا الفرع", "err"); return; }
 
   $("call-setup").style.display    = "none";
   $("call-interface").style.display = "block";
+  $("change-branch-btn").style.display = "inline-flex";
 
   buildTagButtons("pos-tags", "positive");
   buildTagButtons("neg-tags", "negative");
   renderCallCustomer();
-}
-
-async function loadCallBatch() {
-  let q = query(
-    collection(db, "customers"),
-    where("branches", "array-contains", callBranchId),
-    orderBy("lastSeen"), limit(25)
-  );
-  if (callLastDoc) q = query(q, startAfter(callLastDoc));
-  const snap = await getDocs(q);
-  callQueue   = [...callQueue, ...snap.docs.map(d => ({ id: d.id, ...d.data() }))];
-  callLastDoc = snap.docs[snap.docs.length - 1] || null;
-  callHasMore = snap.docs.length === 25;
-}
+};
 
 function renderCallCustomer() {
   if (callIdx >= callQueue.length) {
-    if (callHasMore) { loadCallBatch().then(renderCallCustomer); return; }
     $("call-interface").innerHTML = `
       <div class="card" style="text-align:center;padding:2rem">
         <div style="font-size:2.5rem">✅</div>
@@ -289,15 +267,16 @@ function renderCallCustomer() {
   $("neg-notes").value = "";
 }
 
-function resetCallScreen() {
-  callBranchId = null; callQueue = []; callIdx = 0; callLastDoc = null;
+window.resetCallScreen = function () {
+  callBranchId = null; callQueue = []; callIdx = 0;
   $("call-setup").style.display    = "block";
   $("call-interface").style.display = "none";
-}
+  $("change-branch-btn").style.display = "none";
+};
 
-function skipCustomer() { callIdx++; renderCallCustomer(); }
+window.skipCustomer = function () { callIdx++; renderCallCustomer(); };
 
-async function saveSurveyAndNext() {
+window.saveSurveyAndNext = async function () {
   const c   = callQueue[callIdx];
   const btn = $("save-btn");
   btn.disabled    = true;
@@ -329,7 +308,7 @@ async function saveSurveyAndNext() {
     btn.disabled    = false;
     btn.textContent = "حفظ والانتقال للعميل التالي ←";
   }
-}
+};
 
 // ══════════════════════════════════════════════
 // CUSTOMERS LIST
@@ -343,61 +322,87 @@ async function loadCustomers(append = false) {
   try {
     let q;
     if (custBranch) {
-      q = query(
-        collection(db, "customers"),
-        where("branches", "array-contains", custBranch),
-        orderBy("lastSeen", "desc"), limit(20)
-      );
+      // مع فلتر الفرع: نجلب الكل ونرتب في الذاكرة (لا يدعم التحميل المزيد)
+      q = query(collection(db, "customers"), where("branches", "array-contains", custBranch));
+      const snap = await getDocs(q);
+      const custs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // ترتيب تنازلي حسب lastSeen
+      custs.sort((a, b) => (b.lastSeen?.toMillis?.() || 0) - (a.lastSeen?.toMillis?.() || 0));
+      const sliced = custs.slice(0, 20);
+
+      const branches = await getBranches();
+      const bMap = {};
+      branches.forEach(b => (bMap[b.id] = b.name));
+
+      const list = $("cust-list");
+      if (!append) list.innerHTML = "";
+      if (sliced.length === 0 && !append) {
+        list.innerHTML = '<p class="empty">لا يوجد عملاء</p>';
+      } else {
+        sliced.forEach(c => {
+          const li = document.createElement("li");
+          li.className = "c-item";
+          li.innerHTML = `
+            <div>
+              <div class="c-name">${c.name || "بدون اسم"}</div>
+              <div class="c-phone ltr">${c.phone}</div>
+            </div>
+            <div class="c-meta">${(c.branches || []).map(id => bMap[id] || "").filter(Boolean).join(" · ")}</div>
+          `;
+          li.addEventListener("click", () => openProfile(c.id));
+          list.appendChild(li);
+        });
+      }
+      $("load-more-btn").style.display = "none";
+      return;
     } else {
+      // بدون فلتر: استخدم orderBy مع limit و startAfter
       q = query(collection(db, "customers"), orderBy("lastSeen", "desc"), limit(20));
+      if (append && custLastDoc) q = query(q, startAfter(custLastDoc));
+      const snap = await getDocs(q);
+      const custs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      custLastDoc = snap.docs[snap.docs.length - 1] || null;
+      custHasMore = snap.docs.length === 20;
+
+      const branches = await getBranches();
+      const bMap = {};
+      branches.forEach(b => (bMap[b.id] = b.name));
+
+      const list = $("cust-list");
+      if (!append) list.innerHTML = "";
+
+      if (custs.length === 0 && !append) {
+        list.innerHTML = '<p class="empty">لا يوجد عملاء</p>';
+      } else {
+        custs.forEach(c => {
+          const li = document.createElement("li");
+          li.className = "c-item";
+          li.innerHTML = `
+            <div>
+              <div class="c-name">${c.name || "بدون اسم"}</div>
+              <div class="c-phone ltr">${c.phone}</div>
+            </div>
+            <div class="c-meta">${(c.branches || []).map(id => bMap[id] || "").filter(Boolean).join(" · ")}</div>
+          `;
+          li.addEventListener("click", () => openProfile(c.id));
+          list.appendChild(li);
+        });
+      }
+      $("load-more-btn").style.display = custHasMore ? "block" : "none";
     }
-    if (append && custLastDoc) q = query(q, startAfter(custLastDoc));
-
-    const snap    = await getDocs(q);
-    const custs   = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    custLastDoc   = snap.docs[snap.docs.length - 1] || null;
-    custHasMore   = snap.docs.length === 20;
-
-    const branches = await getBranches();
-    const bMap = {};
-    branches.forEach(b => (bMap[b.id] = b.name));
-
-    const list = $("cust-list");
-    if (!append && list) list.innerHTML = "";
-
-    if (custs.length === 0 && !append && list) {
-      list.innerHTML = '<p class="empty">لا يوجد عملاء</p>';
-    } else if (list) {
-      custs.forEach(c => {
-        const li = document.createElement("li");
-        li.className = "c-item";
-        li.innerHTML = `
-          <div>
-            <div class="c-name">${c.name || "بدون اسم"}</div>
-            <div class="c-phone ltr">${c.phone}</div>
-          </div>
-          <div class="c-meta">${(c.branches || []).map(id => bMap[id] || "").filter(Boolean).join(" · ")}</div>
-        `;
-        li.addEventListener("click", () => openProfile(c.id));
-        list.appendChild(li);
-      });
-    }
-
-    $("load-more-btn").style.display = custHasMore ? "block" : "none";
   } catch (e) {
-    const list = $("cust-list");
-    if (list) list.innerHTML = `<p class="err-msg">${e.message}</p>`;
+    $("cust-list").innerHTML = `<p class="err-msg">${e.message}</p>`;
   }
 }
 
-function loadMoreCustomers() { loadCustomers(true); }
+window.loadMoreCustomers = () => loadCustomers(true);
 
-function filterCustBranch(val) {
+window.filterCustBranch = function (val) {
   custBranch = val;
   loadCustomers();
-}
+};
 
-function searchCustomers(val) {
+window.searchCustomers = function (val) {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(async () => {
     if (!val.trim()) { loadCustomers(); return; }
@@ -409,24 +414,23 @@ function searchCustomers(val) {
       return;
     }
 
-    // prefix search by name
+    // بحث بالاسم باستخدام orderBy و startAt/endAt (لا يحتاج فهرس مركب)
     const snap = await getDocs(query(
       collection(db, "customers"),
       orderBy("name"),
-      where("name", ">=", val),
-      where("name", "<=", val + "\uf8ff"),
+      startAt(val),
+      endAt(val + "\uf8ff"),
       limit(20)
     ));
     renderSearchResults(snap.docs.map(d => ({ id: d.id, ...d.data() })));
   }, 350);
-}
+};
 
 async function renderSearchResults(custs) {
   const branches = await getBranches();
   const bMap = {};
   branches.forEach(b => (bMap[b.id] = b.name));
   const list = $("cust-list");
-  if (!list) return;
   list.innerHTML = "";
   if (custs.length === 0) { list.innerHTML = '<p class="empty">لا نتائج</p>'; return; }
   custs.forEach(c => {
@@ -456,7 +460,7 @@ async function openProfile(custId) {
   try {
     const [custDoc, surveysSnap, branches, tags] = await Promise.all([
       getDoc(doc(db, "customers", custId)),
-      getDocs(query(collection(db, "surveys"), where("customerId", "==", custId), orderBy("callDate", "desc"))),
+      getDocs(query(collection(db, "surveys"), where("customerId", "==", custId))),
       getBranches(),
       getTags()
     ]);
@@ -469,7 +473,7 @@ async function openProfile(custId) {
     // auto-lock expired surveys
     const now   = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const surveys = surveysSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let surveys = surveysSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     for (const s of surveys) {
       if (!s.locked && s.callDate) {
         const cd = s.callDate.toDate();
@@ -480,6 +484,8 @@ async function openProfile(custId) {
         }
       }
     }
+    // ترتيب تنازلي حسب callDate في الذاكرة
+    surveys.sort((a, b) => (b.callDate?.toMillis?.() || 0) - (a.callDate?.toMillis?.() || 0));
 
     const branchNames = (c.branches || []).map(id => bMap[id]).filter(Boolean);
 
@@ -536,23 +542,23 @@ async function initImportPage() {
   fillSelect("import-branch-sel");
 }
 
-function switchImportTab(mode, btn) {
+window.switchImportTab = function (mode, btn) {
   importMode = mode;
   document.querySelectorAll(".itab").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
   $("text-section").style.display  = mode === "text"  ? "block" : "none";
   $("excel-section").style.display = mode === "excel" ? "block" : "none";
-}
+};
 
-function handleXlsx(input) {
+window.handleXlsx = function (input) {
   if (input.files[0]) {
     xlsxFile = input.files[0];
     $("xlsx-name").textContent = "✅ " + input.files[0].name;
     $("xlsx-name").style.display = "block";
   }
-}
+};
 
-async function doImport() {
+window.doImport = async function () {
   const branchId = $("import-branch-sel").value;
   if (!branchId) { toast("اختر الفرع أولاً", "err"); return; }
 
@@ -603,7 +609,7 @@ async function doImport() {
     btn.textContent = "بدء الاستيراد";
     setTimeout(() => (prog.style.display = "none"), 1400);
   }
-}
+};
 
 function parseText(raw) {
   return raw.split("\n").map(l => l.trim()).filter(Boolean).flatMap(line => {
@@ -679,30 +685,24 @@ async function upsertCustomers(entries, branchId, onProg) {
 // ══════════════════════════════════════════════
 async function loadReports() {
   const branches = await getBranches();
-  const bar = $("rpt-branch-bar");
-  if (bar) {
-    bar.innerHTML =
-      `<button class="bfilter active" data-bid="" id="btn-rpt-all">جميع الفروع</button>` +
-      branches.map(b =>
-        `<button class="bfilter" data-bid="${b.id}">${b.name}</button>`
-      ).join("");
-
-    // إعداد مستمعي الأحداث ديناميكياً بدلاً من inline onClick
-    bar.querySelectorAll(".bfilter").forEach(btn => {
-      btn.addEventListener("click", async (e) => {
-        bar.querySelectorAll(".bfilter").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        rptBranch = btn.dataset.bid || null;
-        await renderTagReport();
-        $("branch-cmp-card").style.display = !rptBranch ? "block" : "none";
-      });
-    });
-  }
+  $("rpt-branch-bar").innerHTML =
+    `<button class="bfilter active" data-bid="" onclick="selectRptBranch('',this)">جميع الفروع</button>` +
+    branches.map(b =>
+      `<button class="bfilter" data-bid="${b.id}" onclick="selectRptBranch('${b.id}',this)">${b.name}</button>`
+    ).join("");
 
   await renderTagReport();
   await renderBranchCmp();
   await renderSnippets();
 }
+
+window.selectRptBranch = async function (bid, btn) {
+  document.querySelectorAll(".bfilter").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  rptBranch = bid || null;
+  await renderTagReport();
+  $("branch-cmp-card").style.display = !rptBranch ? "block" : "none";
+};
 
 async function renderTagReport() {
   loading("tag-report");
@@ -726,24 +726,21 @@ async function renderTagReport() {
   const sortedNeg = Object.entries(neg).map(([id, c]) => ({ name: tagMap[id] || id, count: c })).sort((a, b) => b.count - a.count).slice(0, 10);
   const maxP = sortedPos[0]?.count || 1, maxN = sortedNeg[0]?.count || 1;
 
-  const repContainer = $("tag-report");
-  if (repContainer) {
-    repContainer.innerHTML = `
-      <div class="report-grid">
-        <div>
-          <div class="rep-section-title pos">✦ أكثر الإشادات</div>
-          ${sortedPos.length === 0 ? '<p class="empty" style="padding:.5rem">لا بيانات</p>'
-            : sortedPos.map(t => barHTML(t.name, t.count, maxP, "pos")).join("")}
-        </div>
-        <div>
-          <div class="rep-section-title neg">◈ أكثر الشكاوى</div>
-          ${sortedNeg.length === 0 ? '<p class="empty" style="padding:.5rem">لا بيانات</p>'
-            : sortedNeg.map(t => barHTML(t.name, t.count, maxN, "neg")).join("")}
-        </div>
+  $("tag-report").innerHTML = `
+    <div class="report-grid">
+      <div>
+        <div class="rep-section-title pos">✦ أكثر الإشادات</div>
+        ${sortedPos.length === 0 ? '<p class="empty" style="padding:.5rem">لا بيانات</p>'
+          : sortedPos.map(t => barHTML(t.name, t.count, maxP, "pos")).join("")}
       </div>
-      <p style="font-size:.8rem;color:var(--ink-3);text-align:center;margin-top:.75rem">إجمالي الاستطلاعات: ${snap.size}</p>
-    `;
-  }
+      <div>
+        <div class="rep-section-title neg">◈ أكثر الشكاوى</div>
+        ${sortedNeg.length === 0 ? '<p class="empty" style="padding:.5rem">لا بيانات</p>'
+          : sortedNeg.map(t => barHTML(t.name, t.count, maxN, "neg")).join("")}
+      </div>
+    </div>
+    <p style="font-size:.8rem;color:var(--ink-3);text-align:center;margin-top:.75rem">إجمالي الاستطلاعات: ${snap.size}</p>
+  `;
 }
 
 function barHTML(name, count, max, cls) {
@@ -769,22 +766,19 @@ async function renderBranchCmp() {
     }
   });
   const rows = Object.values(stats);
-  const cmpContainer = $("branch-cmp");
-  if (cmpContainer) {
-    cmpContainer.innerHTML = rows.length === 0
-      ? '<p class="empty">لا بيانات</p>'
-      : `<div style="overflow-x:auto"><table class="cmp-table">
-          <thead><tr><th>الفرع</th><th>الاستطلاعات</th><th>الإشادات</th><th>الشكاوى</th></tr></thead>
-          <tbody>${rows.map(r => `
-            <tr>
-              <td><strong>${r.name}</strong></td>
-              <td>${r.surveys}</td>
-              <td class="td-pos">${r.pos}</td>
-              <td class="td-neg">${r.neg}</td>
-            </tr>`).join("")}
-          </tbody>
-        </table></div>`;
-  }
+  $("branch-cmp").innerHTML = rows.length === 0
+    ? '<p class="empty">لا بيانات</p>'
+    : `<div style="overflow-x:auto"><table class="cmp-table">
+        <thead><tr><th>الفرع</th><th>الاستطلاعات</th><th>الإشادات</th><th>الشكاوى</th></tr></thead>
+        <tbody>${rows.map(r => `
+          <tr>
+            <td><strong>${r.name}</strong></td>
+            <td>${r.surveys}</td>
+            <td class="td-pos">${r.pos}</td>
+            <td class="td-neg">${r.neg}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>`;
 }
 
 async function renderSnippets() {
@@ -801,13 +795,12 @@ async function renderSnippets() {
     [all[i], all[j]] = [all[j], all[i]];
   }
   const pick = all.slice(0, 6);
-  const snipContainer = $("snippets");
-  if (snipContainer) {
-    snipContainer.innerHTML = pick.length === 0
-      ? '<p class="empty">لا توجد ملاحظات بعد</p>'
-      : pick.map(s => `<div class="snippet ${s.type}">"${s.text}"</div>`).join("");
-  }
+  $("snippets").innerHTML = pick.length === 0
+    ? '<p class="empty">لا توجد ملاحظات بعد</p>'
+    : pick.map(s => `<div class="snippet ${s.type}">"${s.text}"</div>`).join("");
 }
+
+window.refreshSnippets = renderSnippets;
 
 // ══════════════════════════════════════════════
 // ADMIN
@@ -820,36 +813,24 @@ async function loadAdmin() {
 async function loadBranchAdmin() {
   clearBranchCache();
   const branches = await getBranches();
-  const list = $("branch-list");
-  if (list) {
-    list.innerHTML = branches.length === 0
-      ? '<p class="empty">لا توجد فروع</p>'
-      : branches.map(b => `
-          <li class="admin-item">
-            <span class="admin-name">${b.name}</span>
-            <div class="admin-actions">
-              <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${b.id}" data-name="${b.name.replace(/'/g,"\\'")}">تعديل</button>
-              <button class="btn btn-danger btn-sm" data-action="delete" data-id="${b.id}" data-name="${b.name.replace(/'/g,"\\'")}">حذف</button>
-            </div>
-          </li>`).join("");
-
-    // ربط الأحداث ديناميكياً
-    list.querySelectorAll("button").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const action = btn.dataset.action;
-        if (action === "edit") editBranch(btn.dataset.id, btn.dataset.name);
-        if (action === "delete") deleteBranch(btn.dataset.id, btn.dataset.name);
-      });
-    });
-  }
+  $("branch-list").innerHTML = branches.length === 0
+    ? '<p class="empty">لا توجد فروع</p>'
+    : branches.map(b => `
+        <li class="admin-item">
+          <span class="admin-name">${b.name}</span>
+          <div class="admin-actions">
+            <button class="btn btn-ghost btn-sm" onclick="editBranch('${b.id}','${b.name.replace(/'/g,"\\'")}')">تعديل</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteBranch('${b.id}','${b.name.replace(/'/g,"\\'")}')">حذف</button>
+          </div>
+        </li>`).join("");
 }
 
-function toggleAddBranch() {
+window.toggleAddBranch = function () {
   const f = $("add-branch-form");
-  if (f) f.classList.toggle("show");
-}
+  f.classList.toggle("show");
+};
 
-async function addBranch() {
+window.addBranch = async function () {
   const name = $("new-branch-name").value.trim();
   if (!name) return;
   try {
@@ -863,18 +844,18 @@ async function addBranch() {
     fillSelect("import-branch-sel");
     fillSelect("cust-branch-filter");
   } catch (e) { toast(e.message, "err"); }
-}
+};
 
-async function editBranch(id, old) {
+window.editBranch = async function (id, old) {
   const name = prompt("اسم الفرع الجديد:", old);
   if (!name || name.trim() === old) return;
   await updateDoc(doc(db, "branches", id), { name: name.trim() });
   toast("تم التعديل", "ok");
   clearBranchCache();
   loadBranchAdmin();
-}
+};
 
-async function deleteBranch(id, name) {
+window.deleteBranch = async function (id, name) {
   if (!confirm(`حذف فرع "${name}"؟`)) return;
   const snap = await getDocs(query(collection(db, "customers"), where("branches", "array-contains", id), limit(1)));
   if (!snap.empty) { toast("لا يمكن حذف فرع مرتبط بعملاء", "err"); return; }
@@ -882,7 +863,7 @@ async function deleteBranch(id, name) {
   toast("تم الحذف", "ok");
   clearBranchCache();
   loadBranchAdmin();
-}
+};
 
 // ── Tags ──
 async function loadTagsAdmin() {
@@ -893,36 +874,25 @@ async function loadTagsAdmin() {
 }
 
 function renderTagAdmin(listId, tags, type) {
-  const list = $(listId);
-  if (!list) return;
-  list.innerHTML = tags.length === 0
+  $(listId).innerHTML = tags.length === 0
     ? '<p class="empty" style="padding:.5rem">لا توجد وسوم</p>'
     : tags.map(t => `
         <li class="admin-item">
           <span class="admin-name">${t.name}</span>
           <div class="admin-actions">
-            <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${t.id}" data-name="${t.name.replace(/'/g,"\\'")}">تعديل</button>
-            <button class="btn btn-danger btn-sm" data-action="delete" data-id="${t.id}" data-name="${t.name.replace(/'/g,"\\'")}">حذف</button>
+            <button class="btn btn-ghost btn-sm" onclick="editTag('${t.id}','${t.name.replace(/'/g,"\\'")}')">تعديل</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteTag('${t.id}','${t.name.replace(/'/g,"\\'")}','${type}')">حذف</button>
           </div>
         </li>`).join("");
-
-  list.querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const action = btn.dataset.action;
-      if (action === "edit") editTag(btn.dataset.id, btn.dataset.name);
-      if (action === "delete") deleteTag(btn.dataset.id, btn.dataset.name, type);
-    });
-  });
 }
 
-function toggleAddTag(type) {
+window.toggleAddTag = function (type) {
   $("add-pos-tag-form").classList.remove("show");
   $("add-neg-tag-form").classList.remove("show");
-  const f = $(`add-${type === "positive" ? "pos" : "neg"}-tag-form`);
-  if (f) f.classList.toggle("show");
-}
+  $(`add-${type === "positive" ? "pos" : "neg"}-tag-form`).classList.toggle("show");
+};
 
-async function addTag(type) {
+window.addTag = async function (type) {
   const inputId = type === "positive" ? "new-pos-tag" : "new-neg-tag";
   const name    = $(inputId).value.trim();
   if (!name) return;
@@ -932,18 +902,18 @@ async function addTag(type) {
   $(`add-${type === "positive" ? "pos" : "neg"}-tag-form`).classList.remove("show");
   clearTagCache();
   loadTagsAdmin();
-}
+};
 
-async function editTag(id, old) {
+window.editTag = async function (id, old) {
   const name = prompt("اسم الوسم الجديد:", old);
   if (!name || name.trim() === old) return;
   await updateDoc(doc(db, "tags", id), { name: name.trim() });
   toast("تم التعديل", "ok");
   clearTagCache();
   loadTagsAdmin();
-}
+};
 
-async function deleteTag(id, name, type) {
+window.deleteTag = async function (id, name, type) {
   if (!confirm(`حذف وسم "${name}"؟`)) return;
   const field = type === "positive" ? "positives" : "negatives";
   const snap  = await getDocs(query(collection(db, "surveys"), where(field, "array-contains", id), limit(1)));
@@ -952,30 +922,7 @@ async function deleteTag(id, name, type) {
   toast("تم الحذف", "ok");
   clearTagCache();
   loadTagsAdmin();
-}
-
-// ══════════════════════════════════════════════
-// EXPORTING TO GLOBAL SCOPE (لربط أزرار الـ HTML)
-// ══════════════════════════════════════════════
-window.showPage = showPage;
-window.goBack = goBack;
-window.startCalling = startCalling;
-window.resetCallScreen = resetCallScreen;
-window.skipCustomer = skipCustomer;
-window.saveSurveyAndNext = saveSurveyAndNext;
-window.loadMoreCustomers = loadMoreCustomers;
-window.filterCustBranch = filterCustBranch;
-window.searchCustomers = searchCustomers;
-window.switchImportTab = switchImportTab;
-window.handleXlsx = handleXlsx;
-window.doImport = doImport;
-window.refreshSnippets = renderSnippets;
-window.loadDashboard = loadDashboard;
-window.loadReports = loadReports;
-window.toggleAddBranch = toggleAddBranch;
-window.addBranch = addBranch;
-window.toggleAddTag = toggleAddTag;
-window.addTag = addTag;
+};
 
 // ══════════════════════════════════════════════
 // BOOT — init selects on first load
@@ -987,7 +934,7 @@ window.addTag = addTag;
     fillSelect("cust-branch-filter", "جميع الفروع")
   ]);
   const f = $("cust-branch-filter");
-  if (f && f.querySelector("option")) f.querySelector("option").value = "";
+  if (f) f.querySelector("option").value = "";
 
   loadDashboard();
 })();
