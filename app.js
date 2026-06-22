@@ -1,940 +1,745 @@
-// ══════════════════════════════════════════════
-// app.js  —  نظام رضا العملاء
-// Firebase v9 compat SDK  (no auth required)
-// ══════════════════════════════════════════════
+// ===================================================================
+// app.js — منطق تطبيق متابعة الباحث الميداني
+// Firebase: Auth + Firestore + Storage
+// ===================================================================
 
-import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
-         query, where, orderBy, limit, startAfter,
-         serverTimestamp, arrayUnion, increment }
-                                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs";
+import { initializeApp } from “https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js”;
+import {
+getAuth,
+signInWithEmailAndPassword,
+onAuthStateChanged,
+signOut
+} from “https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js”;
+import {
+getFirestore,
+collection,
+doc,
+addDoc,
+setDoc,
+updateDoc,
+deleteDoc,
+getDocs,
+getDoc,
+query,
+orderBy,
+onSnapshot,
+serverTimestamp
+} from “https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js”;
+import {
+getStorage,
+ref,
+uploadBytes,
+getDownloadURL
+} from “https://www.gstatic.com/firebasejs/12.15.0/firebase-storage.js”;
 
-// ── Firebase init ──────────────────────────────
+// ===================== إعداد Firebase =====================
 const firebaseConfig = {
-  apiKey:            "AIzaSyC9hft4HD1Yms4oamZq59REe6lyKkqHE9k",
-  authDomain:        "feedback-68557.firebaseapp.com",
-  projectId:         "feedback-68557",
-  messagingSenderId: "1056419419871",
-  appId:             "1:1056419419871:web:e6fa72598fb44875d03b6a"
-};
-const app     = initializeApp(firebaseConfig);
-const db      = getFirestore(app);
-
-
-// ══════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════
-let currentPage  = "dashboard";
-let prevPage     = null;
-let branchCache  = null;
-let tagCache     = null;
-
-// call-screen state
-let callQueue    = [];
-let callIdx      = 0;
-let callBranchId = null;
-
-// customers list state
-let custLastDoc  = null;
-let custHasMore  = false;
-let custBranch   = "";
-let searchTimer  = null;
-
-// reports state
-let rptBranch    = null;
-
-// ══════════════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════════════
-const $  = id  => document.getElementById(id);
-const qs = sel => document.querySelector(sel);
-
-function toast(msg, type = "") {
-  const t = $("toast");
-  t.textContent = msg;
-  t.className   = "toast show " + type;
-  setTimeout(() => (t.className = "toast"), 2600);
-}
-
-function showPage(name, navEl) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  $("page-" + name).classList.add("active");
-  document.querySelectorAll(".bnav-item").forEach(b => b.classList.remove("active"));
-  if (navEl) navEl.classList.add("active");
-  else {
-    const found = qs(`.bnav-item[data-p="${name}"]`);
-    if (found) found.classList.add("active");
-  }
-  prevPage    = currentPage;
-  currentPage = name;
-  onPageOpen(name);
-}
-
-function goBack() { showPage(prevPage || "dashboard"); }
-
-function loading(id) { $(id).innerHTML = '<div class="loading"></div>'; }
-
-function formatDate(ts) {
-  if (!ts) return "—";
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString("ar-SA");
-}
-
-function normalizePhone(p) {
-  return String(p).replace(/\s/g, "").replace(/^(\+966|00966)/, "0").trim();
-}
-function validPhone(p) { return /^05\d{8}$/.test(p); }
-
-// ══════════════════════════════════════════════
-// PAGE INIT DISPATCH
-// ══════════════════════════════════════════════
-async function onPageOpen(name) {
-  if (name === "dashboard")        loadDashboard();
-  if (name === "customers")        { custLastDoc = null; loadCustomers(); }
-  if (name === "call")             initCallPage();
-  if (name === "import")           initImportPage();
-  if (name === "reports")          loadReports();
-  if (name === "admin")            loadAdmin();
-}
-
-// ══════════════════════════════════════════════
-// BRANCHES
-// ══════════════════════════════════════════════
-async function getBranches() {
-  if (branchCache) return branchCache;
-  const snap = await getDocs(query(collection(db, "branches"), orderBy("name")));
-  branchCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  return branchCache;
-}
-function clearBranchCache() { branchCache = null; }
-
-async function fillSelect(selId, placeholder = "اختر الفرع") {
-  const sel = $(selId);
-  if (!sel) return;
-  const branches = await getBranches();
-  sel.innerHTML = `<option value="">-- ${placeholder} --</option>` +
-    branches.map(b => `<option value="${b.id}">${b.name}</option>`).join("");
-}
-
-// ══════════════════════════════════════════════
-// TAGS
-// ══════════════════════════════════════════════
-async function getTags() {
-  if (tagCache) return tagCache;
-  const snap = await getDocs(query(collection(db, "tags"), orderBy("name")));
-  tagCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  return tagCache;
-}
-function clearTagCache() { tagCache = null; }
-
-function buildTagButtons(containerId, type, selectedIds = []) {
-  getTags().then(tags => {
-    const cont = $(containerId);
-    cont.innerHTML = "";
-    tags.filter(t => t.type === type).forEach(t => {
-      const btn = document.createElement("button");
-      btn.type      = "button";
-      btn.className = `tag-btn ${type === "positive" ? "pos" : "neg"}${selectedIds.includes(t.id) ? " on" : ""}`;
-      btn.dataset.id = t.id;
-      btn.textContent = t.name;
-      btn.addEventListener("click", () => btn.classList.toggle("on"));
-      cont.appendChild(btn);
-    });
-  });
-}
-
-function getSelectedTags(containerId) {
-  return [...$(containerId).querySelectorAll(".tag-btn.on")].map(b => b.dataset.id);
-}
-
-// ══════════════════════════════════════════════
-// DASHBOARD
-// ══════════════════════════════════════════════
-async function loadDashboard() {
-  $("kpi-grid").innerHTML = '<div class="loading" style="margin:.5rem auto;width:22px;height:22px;border-width:2px"></div>';
-
-  const [surveysSnap, custSnap, branches, tags] = await Promise.all([
-    getDocs(collection(db, "surveys")),
-    getDocs(collection(db, "customers")),
-    getBranches(),
-    getTags()
-  ]);
-
-  const total   = custSnap.size;
-  const surveys = surveysSnap.size;
-  const rate    = total > 0 ? Math.round(surveys / total * 100) : 0;
-  const tagMap  = {};
-  tags.forEach(t => (tagMap[t.id] = t.name));
-
-  const posCnt = {}, negCnt = {};
-  surveysSnap.docs.forEach(d => {
-    const s = d.data();
-    (s.positives || []).forEach(id => (posCnt[id] = (posCnt[id] || 0) + 1));
-    (s.negatives || []).forEach(id => (negCnt[id] = (negCnt[id] || 0) + 1));
-  });
-
-  $("kpi-grid").innerHTML = `
-    <div class="kpi-card"><div class="kpi-value">${total}</div><div class="kpi-label">العملاء</div></div>
-    <div class="kpi-card"><div class="kpi-value">${surveys}</div><div class="kpi-label">الاستطلاعات</div></div>
-    <div class="kpi-card"><div class="kpi-value">${rate}%</div><div class="kpi-label">نسبة التواصل</div></div>
-    <div class="kpi-card"><div class="kpi-value">${branches.length}</div><div class="kpi-label">الفروع</div></div>
-  `;
-
-  renderMiniBar("dash-pos", posCnt, tagMap, "pos");
-  renderMiniBar("dash-neg", negCnt, tagMap, "neg");
-}
-
-function renderMiniBar(id, counts, tagMap, cls) {
-  const sorted = Object.entries(counts)
-    .map(([k, v]) => ({ name: tagMap[k] || k, count: v }))
-    .sort((a, b) => b.count - a.count).slice(0, 5);
-  const max = sorted[0]?.count || 1;
-  $(id).innerHTML = sorted.length === 0
-    ? '<p class="empty" style="padding:.5rem">لا بيانات بعد</p>'
-    : sorted.map(t => `
-        <div class="bar-item">
-          <div class="bar-label"><span>${t.name}</span><span class="bar-count">${t.count}</span></div>
-          <div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.round(t.count/max*100)}%"></div></div>
-        </div>`).join("");
-}
-
-// ══════════════════════════════════════════════
-// CALL SCREEN
-// ══════════════════════════════════════════════
-async function initCallPage() {
-  if (!callBranchId) {
-    $("call-setup").style.display = "block";
-    $("call-interface").style.display = "none";
-    fillSelect("call-branch-sel");
-  }
-}
-
-window.startCalling = async function () {
-  const branchId = $("call-branch-sel").value;
-  if (!branchId) { toast("اختر الفرع أولاً", "err"); return; }
-  callBranchId = branchId;
-  callQueue    = [];
-  callIdx      = 0;
-
-  // جلب جميع العملاء في الفرع (بدون orderBy لتجنب فهرس مركب)
-  try {
-    const snap = await getDocs(query(collection(db, "customers"), where("branches", "array-contains", branchId)));
-    callQueue = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    // ترتيب حسب lastSeen (الأقدم أولاً للاتصال)
-    callQueue.sort((a, b) => (a.lastSeen?.toMillis?.() || 0) - (b.lastSeen?.toMillis?.() || 0));
-  } catch (e) {
-    toast("خطأ في جلب العملاء: " + e.message, "err");
-    return;
-  }
-
-  if (callQueue.length === 0) { toast("لا يوجد عملاء في هذا الفرع", "err"); return; }
-
-  $("call-setup").style.display    = "none";
-  $("call-interface").style.display = "block";
-  $("change-branch-btn").style.display = "inline-flex";
-
-  buildTagButtons("pos-tags", "positive");
-  buildTagButtons("neg-tags", "negative");
-  renderCallCustomer();
+apiKey: “AIzaSyA0kcj6C_PgrSBfmZ0DE3w0CVQEq5y8WZU”,
+authDomain: “comp-100d1.firebaseapp.com”,
+projectId: “comp-100d1”,
+storageBucket: “comp-100d1.firebasestorage.app”,
+messagingSenderId: “427417913381”,
+appId: “1:427417913381:web:80262b33c432cc540197cc”,
+measurementId: “G-P0XWTP6MTD”
 };
 
-function renderCallCustomer() {
-  if (callIdx >= callQueue.length) {
-    $("call-interface").innerHTML = `
-      <div class="card" style="text-align:center;padding:2rem">
-        <div style="font-size:2.5rem">✅</div>
-        <h3 style="margin:.75rem 0 .4rem">انتهت القائمة</h3>
-        <p class="empty" style="padding:0 0 1rem">تم إجراء ${callIdx} محادثة</p>
-        <button class="btn btn-primary" onclick="resetCallScreen()">اختيار فرع آخر</button>
-      </div>`;
-    return;
-  }
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
-  const c   = callQueue[callIdx];
-  const tot = callQueue.length;
-  const pct = tot > 0 ? Math.round(callIdx / tot * 100) : 0;
-
-  $("call-progress-txt").textContent = `${callIdx} / ${tot}`;
-  $("call-pbar").style.width         = pct + "%";
-  $("call-name").textContent  = c.name || "بدون اسم";
-  $("call-phone").textContent = c.phone;
-  $("call-tel").href          = "tel:" + c.phone;
-
-  // reset inputs
-  document.querySelectorAll(".tag-btn").forEach(b => b.classList.remove("on"));
-  $("pos-notes").value = "";
-  $("neg-notes").value = "";
-}
-
-window.resetCallScreen = function () {
-  callBranchId = null; callQueue = []; callIdx = 0;
-  $("call-setup").style.display    = "block";
-  $("call-interface").style.display = "none";
-  $("change-branch-btn").style.display = "none";
+// ===================== حالة التطبيق =====================
+const state = {
+user: null,
+branches: [],          // { id, name }
+currentBranchId: null,
+customers: [],          // عملاء الفرع الحالي (مع id)
+tags: [],               // [{id, name}]
+selectedCustomerId: null,   // العميل المفتوح حاليا في شاشة التفاصيل/الاتصال
+detailSelectedTags: new Set(),
+afterAnswerSelectedTags: new Set(),
+mediaRecorder: null,
+audioChunks: [],
+recordTarget: null,     // ‘detail’ | ‘afterAnswer’
+recordTimerInterval: null,
+recordSeconds: 0,
+pendingAudioBlob: null,  // آخر تسجيل لم يُحفظ بعد
+unsubCustomers: null,
+unsubBranches: null,
+unsubTags: null
 };
 
-window.skipCustomer = function () { callIdx++; renderCallCustomer(); };
+// ===================== أدوات مساعدة =====================
+function $(id){ return document.getElementById(id); }
 
-window.saveSurveyAndNext = async function () {
-  const c   = callQueue[callIdx];
-  const btn = $("save-btn");
-  btn.disabled    = true;
-  btn.textContent = "جاري الحفظ...";
-
-  try {
-    const positives = getSelectedTags("pos-tags");
-    const negatives = getSelectedTags("neg-tags");
-
-    await addDoc(collection(db, "surveys"), {
-      customerId:    c.id,
-      branchId:      callBranchId,
-      positives,
-      negatives,
-      positiveNotes: $("pos-notes").value.trim(),
-      negativeNotes: $("neg-notes").value.trim(),
-      callDate:      serverTimestamp(),
-      locked:        false
-    });
-
-    await updateDoc(doc(db, "customers", c.id), { lastSeen: serverTimestamp() });
-
-    toast("تم الحفظ ✓", "ok");
-    callIdx++;
-    renderCallCustomer();
-  } catch (e) {
-    toast("خطأ: " + e.message, "err");
-  } finally {
-    btn.disabled    = false;
-    btn.textContent = "حفظ والانتقال للعميل التالي ←";
-  }
-};
-
-// ══════════════════════════════════════════════
-// CUSTOMERS LIST
-// ══════════════════════════════════════════════
-async function loadCustomers(append = false) {
-  if (!append) {
-    custLastDoc = null;
-    loading("cust-list");
-  }
-
-  try {
-    let q;
-    if (custBranch) {
-      // مع فلتر الفرع: نجلب الكل ونرتب في الذاكرة (لا يدعم التحميل المزيد)
-      q = query(collection(db, "customers"), where("branches", "array-contains", custBranch));
-      const snap = await getDocs(q);
-      const custs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // ترتيب تنازلي حسب lastSeen
-      custs.sort((a, b) => (b.lastSeen?.toMillis?.() || 0) - (a.lastSeen?.toMillis?.() || 0));
-      const sliced = custs.slice(0, 20);
-
-      const branches = await getBranches();
-      const bMap = {};
-      branches.forEach(b => (bMap[b.id] = b.name));
-
-      const list = $("cust-list");
-      if (!append) list.innerHTML = "";
-      if (sliced.length === 0 && !append) {
-        list.innerHTML = '<p class="empty">لا يوجد عملاء</p>';
-      } else {
-        sliced.forEach(c => {
-          const li = document.createElement("li");
-          li.className = "c-item";
-          li.innerHTML = `
-            <div>
-              <div class="c-name">${c.name || "بدون اسم"}</div>
-              <div class="c-phone ltr">${c.phone}</div>
-            </div>
-            <div class="c-meta">${(c.branches || []).map(id => bMap[id] || "").filter(Boolean).join(" · ")}</div>
-          `;
-          li.addEventListener("click", () => openProfile(c.id));
-          list.appendChild(li);
-        });
-      }
-      $("load-more-btn").style.display = "none";
-      return;
-    } else {
-      // بدون فلتر: استخدم orderBy مع limit و startAfter
-      q = query(collection(db, "customers"), orderBy("lastSeen", "desc"), limit(20));
-      if (append && custLastDoc) q = query(q, startAfter(custLastDoc));
-      const snap = await getDocs(q);
-      const custs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      custLastDoc = snap.docs[snap.docs.length - 1] || null;
-      custHasMore = snap.docs.length === 20;
-
-      const branches = await getBranches();
-      const bMap = {};
-      branches.forEach(b => (bMap[b.id] = b.name));
-
-      const list = $("cust-list");
-      if (!append) list.innerHTML = "";
-
-      if (custs.length === 0 && !append) {
-        list.innerHTML = '<p class="empty">لا يوجد عملاء</p>';
-      } else {
-        custs.forEach(c => {
-          const li = document.createElement("li");
-          li.className = "c-item";
-          li.innerHTML = `
-            <div>
-              <div class="c-name">${c.name || "بدون اسم"}</div>
-              <div class="c-phone ltr">${c.phone}</div>
-            </div>
-            <div class="c-meta">${(c.branches || []).map(id => bMap[id] || "").filter(Boolean).join(" · ")}</div>
-          `;
-          li.addEventListener("click", () => openProfile(c.id));
-          list.appendChild(li);
-        });
-      }
-      $("load-more-btn").style.display = custHasMore ? "block" : "none";
-    }
-  } catch (e) {
-    $("cust-list").innerHTML = `<p class="err-msg">${e.message}</p>`;
-  }
+function showScreen(id){
+document.querySelectorAll(”.screen”).forEach(s => s.classList.remove(“active”));
+$(id).classList.add(“active”);
 }
 
-window.loadMoreCustomers = () => loadCustomers(true);
-
-window.filterCustBranch = function (val) {
-  custBranch = val;
-  loadCustomers();
-};
-
-window.searchCustomers = function (val) {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(async () => {
-    if (!val.trim()) { loadCustomers(); return; }
-
-    const phone = normalizePhone(val);
-    if (validPhone(phone)) {
-      const snap = await getDocs(query(collection(db, "customers"), where("phone", "==", phone), limit(1)));
-      renderSearchResults(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      return;
-    }
-
-    // بحث بالاسم باستخدام orderBy و startAt/endAt (لا يحتاج فهرس مركب)
-    const snap = await getDocs(query(
-      collection(db, "customers"),
-      orderBy("name"),
-      startAt(val),
-      endAt(val + "\uf8ff"),
-      limit(20)
-    ));
-    renderSearchResults(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-  }, 350);
-};
-
-async function renderSearchResults(custs) {
-  const branches = await getBranches();
-  const bMap = {};
-  branches.forEach(b => (bMap[b.id] = b.name));
-  const list = $("cust-list");
-  list.innerHTML = "";
-  if (custs.length === 0) { list.innerHTML = '<p class="empty">لا نتائج</p>'; return; }
-  custs.forEach(c => {
-    const li = document.createElement("li");
-    li.className = "c-item";
-    li.innerHTML = `
-      <div>
-        <div class="c-name">${c.name || "بدون اسم"}</div>
-        <div class="c-phone ltr">${c.phone}</div>
-      </div>
-      <div class="c-meta">${(c.branches || []).map(id => bMap[id] || "").filter(Boolean).join(" · ")}</div>
-    `;
-    li.addEventListener("click", () => openProfile(c.id));
-    list.appendChild(li);
-  });
-  $("load-more-btn").style.display = "none";
+function showToast(msg){
+const t = $(“toast”);
+t.textContent = msg;
+t.classList.add(“show”);
+setTimeout(() => t.classList.remove(“show”), 2200);
 }
 
-// ══════════════════════════════════════════════
-// CUSTOMER PROFILE
-// ══════════════════════════════════════════════
-async function openProfile(custId) {
-  prevPage = currentPage;
-  showPage("profile");
-  loading("profile-content");
-
-  try {
-    const [custDoc, surveysSnap, branches, tags] = await Promise.all([
-      getDoc(doc(db, "customers", custId)),
-      getDocs(query(collection(db, "surveys"), where("customerId", "==", custId))),
-      getBranches(),
-      getTags()
-    ]);
-
-    const c    = { id: custDoc.id, ...custDoc.data() };
-    const bMap = {}, tMap = {};
-    branches.forEach(b => (bMap[b.id] = b.name));
-    tags.forEach(t => (tMap[t.id]  = { name: t.name, type: t.type }));
-
-    // auto-lock expired surveys
-    const now   = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    let surveys = surveysSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    for (const s of surveys) {
-      if (!s.locked && s.callDate) {
-        const cd = s.callDate.toDate();
-        const cDay = new Date(cd.getFullYear(), cd.getMonth(), cd.getDate());
-        if (cDay < today) {
-          await updateDoc(doc(db, "surveys", s.id), { locked: true });
-          s.locked = true;
-        }
-      }
-    }
-    // ترتيب تنازلي حسب callDate في الذاكرة
-    surveys.sort((a, b) => (b.callDate?.toMillis?.() || 0) - (a.callDate?.toMillis?.() || 0));
-
-    const branchNames = (c.branches || []).map(id => bMap[id]).filter(Boolean);
-
-    $("profile-content").innerHTML = `
-      <div class="profile-header">
-        <div class="profile-name">${c.name || "بدون اسم"}</div>
-        <span class="profile-phone ltr">${c.phone}</span>
-        <div class="profile-tags">
-          ${branchNames.map(n => `<span class="branch-badge">${n}</span>`).join("")}
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">المكالمات السابقة (${surveys.length})</span>
-        </div>
-        ${surveys.length === 0
-          ? '<p class="empty">لا توجد مكالمات بعد</p>'
-          : surveys.map(s => {
-              const posTags = (s.positives || []).map(id => tMap[id]?.name || id);
-              const negTags = (s.negatives || []).map(id => tMap[id]?.name || id);
-              return `
-                <div class="survey-item ${s.locked ? "locked" : ""}">
-                  <div class="survey-date">
-                    ${formatDate(s.callDate)}
-                    ${s.locked ? '<span class="locked-pill">🔒 مقفل</span>' : ""}
-                  </div>
-                  <div class="stags">
-                    ${posTags.map(n => `<span class="stag pos">${n}</span>`).join("")}
-                    ${negTags.map(n => `<span class="stag neg">${n}</span>`).join("")}
-                  </div>
-                  ${s.positiveNotes ? `<div class="survey-note pos">✦ ${s.positiveNotes}</div>` : ""}
-                  ${s.negativeNotes ? `<div class="survey-note neg">◈ ${s.negativeNotes}</div>` : ""}
-                </div>`;
-            }).join("")
-        }
-      </div>
-    `;
-
-  } catch (e) {
-    $("profile-content").innerHTML = `<p class="err-msg">${e.message}</p>`;
-  }
+function normalizePhone(p){
+return (p || “”).replace(/[^\d+]/g, “”);
 }
 
-// ══════════════════════════════════════════════
-// IMPORT
-// ══════════════════════════════════════════════
-let importMode = "text";
-let xlsxFile   = null;
+// ===================== تسجيل الدخول =====================
+$(“btnLogin”).addEventListener(“click”, async () => {
+const email = $(“loginEmail”).value.trim();
+const password = $(“loginPassword”).value;
+$(“loginError”).textContent = “”;
+if (!email || !password){
+$(“loginError”).textContent = “يرجى إدخال البريد وكلمة المرور”;
+return;
+}
+try{
+await signInWithEmailAndPassword(auth, email, password);
+}catch(err){
+$(“loginError”).textContent = “تعذر تسجيل الدخول: تحقق من البيانات”;
+console.error(err);
+}
+});
 
-async function initImportPage() {
-  $("import-result").style.display = "none";
-  $("prog-wrap").style.display     = "none";
-  fillSelect("import-branch-sel");
+$(“btnLogout”).addEventListener(“click”, async () => {
+await signOut(auth);
+});
+
+onAuthStateChanged(auth, (user) => {
+state.user = user;
+if (user){
+showScreen(“screen-branch”);
+listenBranches();
+listenTags();
+} else {
+showScreen(“screen-login”);
+if (state.unsubBranches) state.unsubBranches();
+if (state.unsubCustomers) state.unsubCustomers();
+if (state.unsubTags) state.unsubTags();
+}
+});
+
+// ===================== الفروع =====================
+function listenBranches(){
+const branchesRef = collection(db, “branches”);
+state.unsubBranches = onSnapshot(branchesRef, (snap) => {
+state.branches = [];
+snap.forEach(d => state.branches.push({ id: d.id, …d.data() }));
+renderBranches();
+});
 }
 
-window.switchImportTab = function (mode, btn) {
-  importMode = mode;
-  document.querySelectorAll(".itab").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  $("text-section").style.display  = mode === "text"  ? "block" : "none";
-  $("excel-section").style.display = mode === "excel" ? "block" : "none";
-};
-
-window.handleXlsx = function (input) {
-  if (input.files[0]) {
-    xlsxFile = input.files[0];
-    $("xlsx-name").textContent = "✅ " + input.files[0].name;
-    $("xlsx-name").style.display = "block";
-  }
-};
-
-window.doImport = async function () {
-  const branchId = $("import-branch-sel").value;
-  if (!branchId) { toast("اختر الفرع أولاً", "err"); return; }
-
-  const btn  = $("import-btn");
-  const prog = $("prog-wrap");
-  const fill = $("prog-fill");
-
-  btn.disabled    = true;
-  btn.textContent = "جاري الاستيراد...";
-  prog.style.display = "block";
-  fill.style.width   = "0%";
-  $("import-result").style.display = "none";
-
-  const onProg = (done, total) => (fill.style.width = Math.round(done / total * 100) + "%");
-
-  try {
-    let entries = [];
-
-    if (importMode === "text") {
-      const raw = $("import-text").value.trim();
-      if (!raw) { toast("أدخل البيانات أولاً", "err"); return; }
-      entries = parseText(raw);
-    } else {
-      if (!xlsxFile) { toast("اختر ملف Excel أولاً", "err"); return; }
-      entries = await parseXlsx(xlsxFile);
-    }
-
-    if (entries.length === 0) { toast("لم يُعثر على أرقام صالحة", "err"); return; }
-
-    const results = await upsertCustomers(entries, branchId, onProg);
-
-    fill.style.width = "100%";
-    $("import-result").style.display = "block";
-    $("import-result").innerHTML = `
-      ✅ <strong>اكتمل الاستيراد</strong><br>
-      جديد: ${results.added} &nbsp;|&nbsp; محدّث: ${results.updated}<br>
-      ${results.errors.length > 0
-        ? `<span style="color:var(--neg)">أخطاء (${results.errors.length}): ${results.errors.slice(0, 3).join("، ")}</span>`
-        : ""}
-    `;
-    toast(`تم استيراد ${results.added + results.updated} عميل`, "ok");
-    clearBranchCache();
-
-  } catch (e) {
-    toast("خطأ: " + e.message, "err");
-  } finally {
-    btn.disabled    = false;
-    btn.textContent = "بدء الاستيراد";
-    setTimeout(() => (prog.style.display = "none"), 1400);
-  }
-};
-
-function parseText(raw) {
-  return raw.split("\n").map(l => l.trim()).filter(Boolean).flatMap(line => {
-    const m = line.match(/^(05\d{8})\s*[\(\（]?([^\)\）]*)[\)\）]?$/);
-    return m ? [{ phone: m[1], name: m[2].trim() }] : [];
-  });
+function renderBranches(){
+const list = $(“branchList”);
+list.innerHTML = “”;
+if (state.branches.length === 0){
+list.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:30px;">لا توجد فروع بعد. أضف فرعًا جديدًا.</p>`;
+return;
+}
+state.branches
+.sort((a,b) => (a.name || “”).localeCompare(b.name || “”, “ar”))
+.forEach(branch => {
+const card = document.createElement(“div”);
+card.className = “branch-card”;
+card.innerHTML = `<span>${escapeHtml(branch.name)}</span><span class="branch-count">فتح ›</span>`;
+card.addEventListener(“click”, () => openBranch(branch.id, branch.name));
+list.appendChild(card);
+});
 }
 
-async function parseXlsx(file) {
-  return new Promise((res, rej) => {
-    const fr = new FileReader();
-    fr.onload = e => {
-      try {
-        const wb   = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
-        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false });
-        const entries = [];
-        rows.forEach(row => {
-          let phone = "", name = "";
-          (row || []).forEach(cell => {
-            const v = normalizePhone(String(cell || "").trim());
-            if (validPhone(v)) phone = v;
-            else if (String(cell || "").trim()) name = name || String(cell).trim();
-          });
-          if (phone) entries.push({ phone, name });
-        });
-        res(entries);
-      } catch (err) { rej(err); }
-    };
-    fr.readAsArrayBuffer(file);
-  });
+$(“btnNewBranch”).addEventListener(“click”, async () => {
+const name = prompt(“اسم الفرع الجديد:”);
+if (!name || !name.trim()) return;
+try{
+await addDoc(collection(db, “branches”), {
+name: name.trim(),
+createdAt: serverTimestamp(),
+createdBy: state.user?.email || “unknown”
+});
+showToast(“تم إنشاء الفرع”);
+}catch(err){
+console.error(err);
+showToast(“فشل إنشاء الفرع”);
+}
+});
+
+function openBranch(id, name){
+state.currentBranchId = id;
+$(“currentBranchName”).textContent = name;
+showScreen(“screen-customers”);
+listenCustomers();
 }
 
-async function upsertCustomers(entries, branchId, onProg) {
-  const results = { added: 0, updated: 0, errors: [] };
-  for (let i = 0; i < entries.length; i++) {
-    const { phone, name } = entries[i];
-    try {
-      if (!validPhone(phone)) throw new Error("رقم غير صالح");
-      const snap = await getDocs(query(collection(db, "customers"), where("phone", "==", phone), limit(1)));
-      if (snap.empty) {
-        await addDoc(collection(db, "customers"), {
-          phone, name: name || "",
-          branches:  [branchId],
-          firstSeen: serverTimestamp(),
-          lastSeen:  serverTimestamp()
-        });
-        results.added++;
-      } else {
-        const ref = snap.docs[0].ref;
-        const upd = { lastSeen: serverTimestamp(), branches: arrayUnion(branchId) };
-        if (name) upd.name = name;
-        await updateDoc(ref, upd);
-        results.updated++;
-      }
-    } catch (e) {
-      results.errors.push(phone + ": " + e.message);
-    }
-    if (onProg) onProg(i + 1, entries.length);
-  }
+$(“btnBackToBranches”).addEventListener(“click”, () => {
+if (state.unsubCustomers) state.unsubCustomers();
+state.currentBranchId = null;
+showScreen(“screen-branch”);
+});
 
-  await addDoc(collection(db, "imports"), {
-    branchId,
-    importDate: serverTimestamp(),
-    count: results.added + results.updated,
-    source: importMode
-  });
-
-  return results;
+// ===================== العملاء =====================
+function customersCol(){
+return collection(db, “branches”, state.currentBranchId, “customers”);
 }
 
-// ══════════════════════════════════════════════
-// REPORTS
-// ══════════════════════════════════════════════
-async function loadReports() {
-  const branches = await getBranches();
-  $("rpt-branch-bar").innerHTML =
-    `<button class="bfilter active" data-bid="" onclick="selectRptBranch('',this)">جميع الفروع</button>` +
-    branches.map(b =>
-      `<button class="bfilter" data-bid="${b.id}" onclick="selectRptBranch('${b.id}',this)">${b.name}</button>`
-    ).join("");
-
-  await renderTagReport();
-  await renderBranchCmp();
-  await renderSnippets();
+function listenCustomers(){
+if (state.unsubCustomers) state.unsubCustomers();
+state.unsubCustomers = onSnapshot(query(customersCol(), orderBy(“createdAt”, “desc”)), (snap) => {
+state.customers = [];
+snap.forEach(d => state.customers.push({ id: d.id, …d.data() }));
+renderCustomers();
+});
 }
 
-window.selectRptBranch = async function (bid, btn) {
-  document.querySelectorAll(".bfilter").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  rptBranch = bid || null;
-  await renderTagReport();
-  $("branch-cmp-card").style.display = !rptBranch ? "block" : "none";
-};
+function renderCustomers(){
+const list = $(“customersList”);
+list.innerHTML = “”;
 
-async function renderTagReport() {
-  loading("tag-report");
-  let q = rptBranch
-    ? query(collection(db, "surveys"), where("branchId", "==", rptBranch))
-    : collection(db, "surveys");
-  const snap = await getDocs(q);
+const total = state.customers.length;
+const called = state.customers.filter(c => c.called).length;
+const answered = state.customers.filter(c => c.answered).length;
+$(“statTotal”).textContent = total;
+$(“statCalled”).textContent = called;
+$(“statAnswered”).textContent = answered;
 
-  const tags   = await getTags();
-  const tagMap = {};
-  tags.forEach(t => (tagMap[t.id] = t.name));
+if (total === 0){
+list.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:40px;">لا يوجد عملاء بعد. اضغط + لإضافة عميل.</p>`;
+return;
+}
 
-  const pos = {}, neg = {};
-  snap.docs.forEach(d => {
-    const s = d.data();
-    (s.positives || []).forEach(id => (pos[id] = (pos[id] || 0) + 1));
-    (s.negatives || []).forEach(id => (neg[id] = (neg[id] || 0) + 1));
-  });
+state.customers.forEach(c => {
+const card = document.createElement(“div”);
+card.className = “customer-card” + (c.answered ? “ answered” : (c.called ? “ called” : “”));
 
-  const sortedPos = Object.entries(pos).map(([id, c]) => ({ name: tagMap[id] || id, count: c })).sort((a, b) => b.count - a.count).slice(0, 10);
-  const sortedNeg = Object.entries(neg).map(([id, c]) => ({ name: tagMap[id] || id, count: c })).sort((a, b) => b.count - a.count).slice(0, 10);
-  const maxP = sortedPos[0]?.count || 1, maxN = sortedNeg[0]?.count || 1;
+```
+const tagsHtml = (c.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
+const statusClass = c.answered ? "answered" : (c.called ? "called" : "not-called");
+const statusText = c.answered ? "رد العميل" : (c.called ? "تم الاتصال" : "لم يتصل بعد");
 
-  $("tag-report").innerHTML = `
-    <div class="report-grid">
-      <div>
-        <div class="rep-section-title pos">✦ أكثر الإشادات</div>
-        ${sortedPos.length === 0 ? '<p class="empty" style="padding:.5rem">لا بيانات</p>'
-          : sortedPos.map(t => barHTML(t.name, t.count, maxP, "pos")).join("")}
-      </div>
-      <div>
-        <div class="rep-section-title neg">◈ أكثر الشكاوى</div>
-        ${sortedNeg.length === 0 ? '<p class="empty" style="padding:.5rem">لا بيانات</p>'
-          : sortedNeg.map(t => barHTML(t.name, t.count, maxN, "neg")).join("")}
-      </div>
+card.innerHTML = `
+  <div class="customer-card-top">
+    <div>
+      <p class="customer-name">${escapeHtml(c.name || "بدون اسم")}</p>
+      <p class="customer-phone">${escapeHtml(c.phone || "")}</p>
     </div>
-    <p style="font-size:.8rem;color:var(--ink-3);text-align:center;margin-top:.75rem">إجمالي الاستطلاعات: ${snap.size}</p>
-  `;
+    <span class="status-badge ${statusClass}">${statusText}</span>
+  </div>
+  ${c.comment ? `<p class="customer-comment">${escapeHtml(c.comment)}</p>` : ""}
+  <div class="customer-tags">${tagsHtml}</div>
+  <div class="customer-card-actions">
+    <button class="card-action-btn card-action-record" data-id="${c.id}">📝 تفاصيل</button>
+    <button class="card-action-btn card-action-call" data-id="${c.id}">📞 اتصال</button>
+  </div>
+`;
+
+card.querySelector(".card-action-record").addEventListener("click", () => openCustomerDetail(c.id));
+card.querySelector(".card-action-call").addEventListener("click", () => openCallScreen(c.id));
+
+list.appendChild(card);
+```
+
+});
 }
 
-function barHTML(name, count, max, cls) {
-  const pct = Math.round(count / max * 100);
-  return `
-    <div class="bar-item">
-      <div class="bar-label"><span>${name}</span><span class="bar-count">${count}</span></div>
-      <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
-    </div>`;
+function escapeHtml(str){
+const div = document.createElement(“div”);
+div.textContent = str ?? “”;
+return div.innerHTML;
 }
 
-async function renderBranchCmp() {
-  loading("branch-cmp");
-  const [branches, surveysSnap] = await Promise.all([getBranches(), getDocs(collection(db, "surveys"))]);
-  const stats = {};
-  branches.forEach(b => (stats[b.id] = { name: b.name, surveys: 0, pos: 0, neg: 0 }));
-  surveysSnap.docs.forEach(d => {
-    const s = d.data();
-    if (stats[s.branchId]) {
-      stats[s.branchId].surveys++;
-      stats[s.branchId].pos += (s.positives || []).length;
-      stats[s.branchId].neg += (s.negatives || []).length;
-    }
-  });
-  const rows = Object.values(stats);
-  $("branch-cmp").innerHTML = rows.length === 0
-    ? '<p class="empty">لا بيانات</p>'
-    : `<div style="overflow-x:auto"><table class="cmp-table">
-        <thead><tr><th>الفرع</th><th>الاستطلاعات</th><th>الإشادات</th><th>الشكاوى</th></tr></thead>
-        <tbody>${rows.map(r => `
-          <tr>
-            <td><strong>${r.name}</strong></td>
-            <td>${r.surveys}</td>
-            <td class="td-pos">${r.pos}</td>
-            <td class="td-neg">${r.neg}</td>
-          </tr>`).join("")}
-        </tbody>
-      </table></div>`;
+// ===================== إضافة عميل (لوحة طلب) =====================
+let dialBuffer = “”;
+
+$(“btnAddCustomerFab”).addEventListener(“click”, () => {
+dialBuffer = “”;
+$(“customerName”).value = “”;
+$(“customerPhone”).value = “”;
+showScreen(“screen-add-customer”);
+$(“customerName”).focus();
+});
+
+$(“btnCloseAddCustomer”).addEventListener(“click”, () => showScreen(“screen-customers”));
+
+document.querySelectorAll(”.dial-key[data-key]”).forEach(btn => {
+btn.addEventListener(“click”, () => {
+dialBuffer += btn.dataset.key;
+$(“customerPhone”).value = dialBuffer;
+});
+});
+
+$(“btnBackspace”).addEventListener(“click”, () => {
+dialBuffer = dialBuffer.slice(0, -1);
+$(“customerPhone”).value = dialBuffer;
+});
+
+// السماح أيضًا بلصق/تعديل الرقم يدويًا عبر لوحة المفاتيح الفعلية إن رغب الباحث
+$(“customerPhone”).addEventListener(“input”, (e) => {
+dialBuffer = normalizePhone(e.target.value);
+e.target.value = dialBuffer;
+});
+
+$(“btnSaveCustomer”).addEventListener(“click”, async () => {
+const name = $(“customerName”).value.trim();
+const phone = normalizePhone($(“customerPhone”).value);
+
+if (!phone){
+showToast(“أدخل رقم الجوال”);
+return;
+}
+if (!state.currentBranchId){
+showToast(“لم يتم تحديد الفرع”);
+return;
 }
 
-async function renderSnippets() {
-  const snap = await getDocs(query(collection(db, "surveys"), limit(60)));
-  const all  = [];
-  snap.docs.forEach(d => {
-    const s = d.data();
-    if (s.positiveNotes?.trim().length > 4) all.push({ text: s.positiveNotes.trim(), type: "pos" });
-    if (s.negativeNotes?.trim().length > 4) all.push({ text: s.negativeNotes.trim(), type: "neg" });
-  });
-  // shuffle
-  for (let i = all.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [all[i], all[j]] = [all[j], all[i]];
+try{
+await addDoc(customersCol(), {
+name: name || “بدون اسم”,
+phone,
+comment: “”,
+tags: [],
+called: false,
+answered: false,
+recordingUrl: “”,
+createdAt: serverTimestamp(),
+createdBy: state.user?.email || “unknown”
+});
+showToast(“تم الحفظ”);
+// إعادة التهيئة تلقائيًا للإدخال التالي
+dialBuffer = “”;
+$(“customerName”).value = “”;
+$(“customerPhone”).value = “”;
+$(“customerName”).focus();
+}catch(err){
+console.error(err);
+showToast(“فشل الحفظ، حاول مجددًا”);
+}
+});
+
+// ===================== الأوسمة =====================
+function listenTags(){
+state.unsubTags = onSnapshot(collection(db, “tags”), (snap) => {
+state.tags = [];
+snap.forEach(d => state.tags.push({ id: d.id, …d.data() }));
+renderSettingsTags();
+});
+}
+
+function renderSettingsTags(){
+const list = $(“settingsTagsList”);
+list.innerHTML = “”;
+if (state.tags.length === 0){
+list.innerHTML = `<p style="color:var(--text-dim);">لا توجد أوسمة بعد.</p>`;
+return;
+}
+state.tags
+.sort((a,b) => (a.name||””).localeCompare(b.name||””, “ar”))
+.forEach(tag => {
+const row = document.createElement(“div”);
+row.className = “settings-tag-row”;
+row.innerHTML = `<span>${escapeHtml(tag.name)}</span><button data-id="${tag.id}">🗑</button>`;
+row.querySelector(“button”).addEventListener(“click”, async () => {
+if (confirm(`حذف الوسم "${tag.name}"؟`)){
+await deleteDoc(doc(db, “tags”, tag.id));
+showToast(“تم حذف الوسم”);
+}
+});
+list.appendChild(row);
+});
+}
+
+$(“btnAddTag”).addEventListener(“click”, async () => {
+const name = $(“newTagInput”).value.trim();
+if (!name) return;
+try{
+await addDoc(collection(db, “tags”), { name, createdAt: serverTimestamp() });
+$(“newTagInput”).value = “”;
+showToast(“تمت إضافة الوسم”);
+}catch(err){
+console.error(err);
+showToast(“فشل إضافة الوسم”);
+}
+});
+
+function renderTagToggles(container, selectedSet){
+container.innerHTML = “”;
+state.tags.forEach(tag => {
+const btn = document.createElement(“button”);
+btn.className = “tag-toggle” + (selectedSet.has(tag.name) ? “ active” : “”);
+btn.textContent = tag.name;
+btn.addEventListener(“click”, () => {
+if (selectedSet.has(tag.name)) selectedSet.delete(tag.name);
+else selectedSet.add(tag.name);
+btn.classList.toggle(“active”);
+});
+container.appendChild(btn);
+});
+if (state.tags.length === 0){
+container.innerHTML = `<p style="color:var(--text-dim);font-size:14px;">لا توجد أوسمة، أضفها من الإعدادات ⚙</p>`;
+}
+}
+
+// ===================== شاشة تفاصيل العميل =====================
+function findCustomer(id){
+return state.customers.find(c => c.id === id);
+}
+
+function openCustomerDetail(id){
+const c = findCustomer(id);
+if (!c) return;
+state.selectedCustomerId = id;
+state.detailSelectedTags = new Set(c.tags || []);
+state.pendingAudioBlob = null;
+
+$(“detailName”).textContent = c.name || “بدون اسم”;
+$(“detailPhone”).textContent = c.phone || “”;
+$(“detailComment”).value = c.comment || “”;
+
+const playback = $(“recordPlayback”);
+if (c.recordingUrl){
+playback.src = c.recordingUrl;
+playback.style.display = “block”;
+} else {
+playback.style.display = “none”;
+playback.src = “”;
+}
+
+resetRecordUI(“detail”);
+renderTagToggles($(“detailTagsWrap”), state.detailSelectedTags);
+showScreen(“screen-customer-detail”);
+}
+
+$(“btnCloseDetail”).addEventListener(“click”, () => showScreen(“screen-customers”));
+
+$(“btnDeleteCustomer”).addEventListener(“click”, async () => {
+if (!state.selectedCustomerId) return;
+if (!confirm(“حذف هذا العميل نهائيًا؟”)) return;
+try{
+await deleteDoc(doc(customersCol(), state.selectedCustomerId));
+showToast(“تم حذف العميل”);
+showScreen(“screen-customers”);
+}catch(err){
+console.error(err);
+showToast(“فشل الحذف”);
+}
+});
+
+$(“btnSaveDetail”).addEventListener(“click”, async () => {
+if (!state.selectedCustomerId) return;
+const comment = $(“detailComment”).value.trim();
+const tags = Array.from(state.detailSelectedTags);
+
+try{
+let recordingUrl = findCustomer(state.selectedCustomerId)?.recordingUrl || “”;
+if (state.pendingAudioBlob){
+recordingUrl = await uploadRecording(state.pendingAudioBlob, state.selectedCustomerId);
+}
+await updateDoc(doc(customersCol(), state.selectedCustomerId), {
+comment,
+tags,
+recordingUrl,
+updatedAt: serverTimestamp()
+});
+showToast(“تم الحفظ”);
+showScreen(“screen-customers”);
+}catch(err){
+console.error(err);
+showToast(“فشل الحفظ”);
+}
+});
+
+$(“btnCallFromDetail”).addEventListener(“click”, () => {
+if (!state.selectedCustomerId) return;
+openCallScreen(state.selectedCustomerId);
+});
+
+// ===================== شاشة الاتصال =====================
+function openCallScreen(id){
+const c = findCustomer(id);
+if (!c) return;
+state.selectedCustomerId = id;
+
+$(“callName”).textContent = c.name || “بدون اسم”;
+$(“callPhone”).textContent = c.phone || “”;
+$(“callStatus”).textContent = “جاهز للاتصال”;
+$(“btnDial”).href = “tel:” + (c.phone || “”);
+$(“btnDial”).style.display = “flex”;
+$(“btnAnswered”).style.display = “none”;
+$(“postCallActions”).style.display = “none”;
+
+showScreen(“screen-call”);
+}
+
+$(“btnDial”).addEventListener(“click”, async () => {
+if (!state.selectedCustomerId) return;
+try{
+await updateDoc(doc(customersCol(), state.selectedCustomerId), {
+called: true,
+lastCallAt: serverTimestamp()
+});
+}catch(err){
+console.error(err);
+}
+$(“callStatus”).textContent = “جارٍ الاتصال…”;
+$(“btnDial”).style.display = “none”;
+$(“btnAnswered”).style.display = “block”;
+});
+
+$(“btnAnswered”).addEventListener(“click”, () => {
+$(“btnAnswered”).style.display = “none”;
+$(“postCallActions”).style.display = “flex”;
+});
+
+$(“btnYesAnswered”).addEventListener(“click”, async () => {
+if (!state.selectedCustomerId) return;
+try{
+await updateDoc(doc(customersCol(), state.selectedCustomerId), {
+answered: true
+});
+}catch(err){ console.error(err); }
+openAfterAnswerScreen(state.selectedCustomerId);
+});
+
+$(“btnNoAnswered”).addEventListener(“click”, async () => {
+if (!state.selectedCustomerId) return;
+try{
+await updateDoc(doc(customersCol(), state.selectedCustomerId), {
+answered: false
+});
+}catch(err){ console.error(err); }
+showToast(“تم تسجيل: لم يرد”);
+showScreen(“screen-customers”);
+});
+
+$(“btnEndCallScreen”).addEventListener(“click”, () => {
+showScreen(“screen-customers”);
+});
+
+// ===================== شاشة بعد الرد =====================
+function openAfterAnswerScreen(id){
+const c = findCustomer(id);
+if (!c) return;
+state.afterAnswerSelectedTags = new Set(c.tags || []);
+state.pendingAudioBlob = null;
+
+$(“afterAnswerName”).textContent = c.name || “بدون اسم”;
+$(“afterAnswerComment”).value = c.comment || “”;
+
+const playback = $(“recordPlayback2”);
+if (c.recordingUrl){
+playback.src = c.recordingUrl;
+playback.style.display = “block”;
+} else {
+playback.style.display = “none”;
+playback.src = “”;
+}
+
+resetRecordUI(“afterAnswer”);
+renderTagToggles($(“afterAnswerTagsWrap”), state.afterAnswerSelectedTags);
+showScreen(“screen-after-answer”);
+}
+
+$(“btnSaveAfterAnswer”).addEventListener(“click”, async () => {
+if (!state.selectedCustomerId) return;
+const comment = $(“afterAnswerComment”).value.trim();
+const tags = Array.from(state.afterAnswerSelectedTags);
+
+try{
+let recordingUrl = findCustomer(state.selectedCustomerId)?.recordingUrl || “”;
+if (state.pendingAudioBlob){
+recordingUrl = await uploadRecording(state.pendingAudioBlob, state.selectedCustomerId);
+}
+await updateDoc(doc(customersCol(), state.selectedCustomerId), {
+comment,
+tags,
+recordingUrl,
+updatedAt: serverTimestamp()
+});
+showToast(“تم الحفظ بنجاح”);
+showScreen(“screen-customers”);
+}catch(err){
+console.error(err);
+showToast(“فشل الحفظ”);
+}
+});
+
+// ===================== التسجيل الصوتي =====================
+function resetRecordUI(target){
+if (target === “detail”){
+$(“recordIcon”).textContent = “🎙”;
+$(“recordLabel”).textContent = “تسجيل ملخص صوتي”;
+$(“btnRecord”).classList.remove(“recording”);
+$(“recordTimer”).textContent = “”;
+} else {
+$(“recordIcon2”).textContent = “🎙”;
+$(“recordLabel2”).textContent = “تسجيل ملخص صوتي”;
+$(“btnRecord2”).classList.remove(“recording”);
+$(“recordTimer2”).textContent = “”;
+}
+}
+
+async function startRecording(target){
+try{
+const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+state.mediaRecorder = new MediaRecorder(stream);
+state.audioChunks = [];
+state.recordTarget = target;
+state.recordSeconds = 0;
+
+```
+state.mediaRecorder.ondataavailable = (e) => state.audioChunks.push(e.data);
+state.mediaRecorder.onstop = () => {
+  const blob = new Blob(state.audioChunks, { type: "audio/webm" });
+  state.pendingAudioBlob = blob;
+  const url = URL.createObjectURL(blob);
+  if (target === "detail"){
+    $("recordPlayback").src = url;
+    $("recordPlayback").style.display = "block";
+  } else {
+    $("recordPlayback2").src = url;
+    $("recordPlayback2").style.display = "block";
   }
-  const pick = all.slice(0, 6);
-  $("snippets").innerHTML = pick.length === 0
-    ? '<p class="empty">لا توجد ملاحظات بعد</p>'
-    : pick.map(s => `<div class="snippet ${s.type}">"${s.text}"</div>`).join("");
+  stream.getTracks().forEach(t => t.stop());
+};
+
+state.mediaRecorder.start();
+
+const iconEl = target === "detail" ? $("recordIcon") : $("recordIcon2");
+const labelEl = target === "detail" ? $("recordLabel") : $("recordLabel2");
+const btnEl = target === "detail" ? $("btnRecord") : $("btnRecord2");
+const timerEl = target === "detail" ? $("recordTimer") : $("recordTimer2");
+
+iconEl.textContent = "⏹";
+labelEl.textContent = "إيقاف التسجيل";
+btnEl.classList.add("recording");
+
+state.recordTimerInterval = setInterval(() => {
+  state.recordSeconds++;
+  const m = String(Math.floor(state.recordSeconds / 60)).padStart(2, "0");
+  const s = String(state.recordSeconds % 60).padStart(2, "0");
+  timerEl.textContent = `${m}:${s}`;
+}, 1000);
+```
+
+}catch(err){
+console.error(err);
+showToast(“تعذر الوصول إلى الميكروفون”);
+}
 }
 
-window.refreshSnippets = renderSnippets;
-
-// ══════════════════════════════════════════════
-// ADMIN
-// ══════════════════════════════════════════════
-async function loadAdmin() {
-  await Promise.all([loadBranchAdmin(), loadTagsAdmin()]);
+function stopRecording(target){
+if (state.mediaRecorder && state.mediaRecorder.state !== “inactive”){
+state.mediaRecorder.stop();
+}
+clearInterval(state.recordTimerInterval);
+resetRecordUI(target);
 }
 
-// ── Branches ──
-async function loadBranchAdmin() {
-  clearBranchCache();
-  const branches = await getBranches();
-  $("branch-list").innerHTML = branches.length === 0
-    ? '<p class="empty">لا توجد فروع</p>'
-    : branches.map(b => `
-        <li class="admin-item">
-          <span class="admin-name">${b.name}</span>
-          <div class="admin-actions">
-            <button class="btn btn-ghost btn-sm" onclick="editBranch('${b.id}','${b.name.replace(/'/g,"\\'")}')">تعديل</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteBranch('${b.id}','${b.name.replace(/'/g,"\\'")}')">حذف</button>
-          </div>
-        </li>`).join("");
+$(“btnRecord”).addEventListener(“click”, () => {
+if (state.mediaRecorder && state.mediaRecorder.state === “recording”){
+stopRecording(“detail”);
+} else {
+startRecording(“detail”);
+}
+});
+
+$(“btnRecord2”).addEventListener(“click”, () => {
+if (state.mediaRecorder && state.mediaRecorder.state === “recording”){
+stopRecording(“afterAnswer”);
+} else {
+startRecording(“afterAnswer”);
+}
+});
+
+async function uploadRecording(blob, customerId){
+const path = `recordings/${state.currentBranchId}/${customerId}_${Date.now()}.webm`;
+const storageRef = ref(storage, path);
+await uploadBytes(storageRef, blob);
+return await getDownloadURL(storageRef);
 }
 
-window.toggleAddBranch = function () {
-  const f = $("add-branch-form");
-  f.classList.toggle("show");
-};
+// ===================== الإعدادات =====================
+$(“btnSettings”).addEventListener(“click”, () => showScreen(“screen-settings”));
+$(“btnCloseSettings”).addEventListener(“click”, () => showScreen(“screen-customers”));
+$(“btnGoReports”).addEventListener(“click”, () => {
+showScreen(“screen-reports”);
+renderReports();
+});
+$(“btnCloseReports”).addEventListener(“click”, () => showScreen(“screen-settings”));
 
-window.addBranch = async function () {
-  const name = $("new-branch-name").value.trim();
-  if (!name) return;
-  try {
-    await addDoc(collection(db, "branches"), { name, createdAt: serverTimestamp() });
-    toast("تمت الإضافة", "ok");
-    $("new-branch-name").value = "";
-    $("add-branch-form").classList.remove("show");
-    loadBranchAdmin();
-    clearBranchCache();
-    fillSelect("call-branch-sel");
-    fillSelect("import-branch-sel");
-    fillSelect("cust-branch-filter");
-  } catch (e) { toast(e.message, "err"); }
-};
+// ===================== التقارير =====================
+async function renderReports(){
+// 1) توزيع الأوسمة للفرع الحالي
+const currentWrap = $(“reportTagsCurrentBranch”);
+currentWrap.innerHTML = `<p style="color:var(--text-dim);">جاري التحميل...</p>`;
 
-window.editBranch = async function (id, old) {
-  const name = prompt("اسم الفرع الجديد:", old);
-  if (!name || name.trim() === old) return;
-  await updateDoc(doc(db, "branches", id), { name: name.trim() });
-  toast("تم التعديل", "ok");
-  clearBranchCache();
-  loadBranchAdmin();
-};
+const tagCounts = {};
+state.customers.forEach(c => {
+(c.tags || []).forEach(t => {
+tagCounts[t] = (tagCounts[t] || 0) + 1;
+});
+});
 
-window.deleteBranch = async function (id, name) {
-  if (!confirm(`حذف فرع "${name}"؟`)) return;
-  const snap = await getDocs(query(collection(db, "customers"), where("branches", "array-contains", id), limit(1)));
-  if (!snap.empty) { toast("لا يمكن حذف فرع مرتبط بعملاء", "err"); return; }
-  await deleteDoc(doc(db, "branches", id));
-  toast("تم الحذف", "ok");
-  clearBranchCache();
-  loadBranchAdmin();
-};
-
-// ── Tags ──
-async function loadTagsAdmin() {
-  clearTagCache();
-  const tags = await getTags();
-  renderTagAdmin("pos-tag-list", tags.filter(t => t.type === "positive"), "positive");
-  renderTagAdmin("neg-tag-list", tags.filter(t => t.type === "negative"), "negative");
+const maxCount = Math.max(1, …Object.values(tagCounts));
+currentWrap.innerHTML = “”;
+if (Object.keys(tagCounts).length === 0){
+currentWrap.innerHTML = `<p style="color:var(--text-dim);">لا توجد بيانات أوسمة في هذا الفرع.</p>`;
+} else {
+Object.entries(tagCounts)
+.sort((a,b) => b[1]-a[1])
+.forEach(([tag, count]) => {
+const row = document.createElement(“div”);
+row.className = “report-bar-row”;
+const pct = Math.round((count / maxCount) * 100);
+row.innerHTML = `<div class="report-bar-label"><span>${escapeHtml(tag)}</span><span>${count}</span></div> <div class="report-bar-track"><div class="report-bar-fill" style="width:${pct}%"></div></div>`;
+currentWrap.appendChild(row);
+});
 }
 
-function renderTagAdmin(listId, tags, type) {
-  $(listId).innerHTML = tags.length === 0
-    ? '<p class="empty" style="padding:.5rem">لا توجد وسوم</p>'
-    : tags.map(t => `
-        <li class="admin-item">
-          <span class="admin-name">${t.name}</span>
-          <div class="admin-actions">
-            <button class="btn btn-ghost btn-sm" onclick="editTag('${t.id}','${t.name.replace(/'/g,"\\'")}')">تعديل</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteTag('${t.id}','${t.name.replace(/'/g,"\\'")}','${type}')">حذف</button>
-          </div>
-        </li>`).join("");
+// 2) مقارنة الفروع حسب الأوسمة
+const compWrap = $(“reportBranchComparison”);
+compWrap.innerHTML = `<p style="color:var(--text-dim);">جاري تحميل بيانات جميع الفروع...</p>`;
+
+try{
+const allTagsSet = new Set(state.tags.map(t => t.name));
+const branchStats = {}; // { branchName: { tagName: count, __total, __called, __answered } }
+
+```
+for (const branch of state.branches){
+  const custSnap = await getDocs(collection(db, "branches", branch.id, "customers"));
+  const stats = { __total: 0, __called: 0, __answered: 0 };
+  custSnap.forEach(d => {
+    const data = d.data();
+    stats.__total++;
+    if (data.called) stats.__called++;
+    if (data.answered) stats.__answered++;
+    (data.tags || []).forEach(t => {
+      allTagsSet.add(t);
+      stats[t] = (stats[t] || 0) + 1;
+    });
+  });
+  branchStats[branch.name] = stats;
 }
 
-window.toggleAddTag = function (type) {
-  $("add-pos-tag-form").classList.remove("show");
-  $("add-neg-tag-form").classList.remove("show");
-  $(`add-${type === "positive" ? "pos" : "neg"}-tag-form`).classList.toggle("show");
-};
+const allTags = Array.from(allTagsSet);
+let html = `<table class="report-table"><thead><tr><th>الفرع</th><th>الإجمالي</th><th>تم الاتصال</th><th>رد</th>`;
+allTags.forEach(t => html += `<th>${escapeHtml(t)}</th>`);
+html += `</tr></thead><tbody>`;
 
-window.addTag = async function (type) {
-  const inputId = type === "positive" ? "new-pos-tag" : "new-neg-tag";
-  const name    = $(inputId).value.trim();
-  if (!name) return;
-  await addDoc(collection(db, "tags"), { name, type, createdAt: serverTimestamp() });
-  toast("تمت الإضافة", "ok");
-  $(inputId).value = "";
-  $(`add-${type === "positive" ? "pos" : "neg"}-tag-form`).classList.remove("show");
-  clearTagCache();
-  loadTagsAdmin();
-};
+Object.entries(branchStats).forEach(([branchName, stats]) => {
+  html += `<tr><td>${escapeHtml(branchName)}</td><td>${stats.__total}</td><td>${stats.__called}</td><td>${stats.__answered}</td>`;
+  allTags.forEach(t => html += `<td>${stats[t] || 0}</td>`);
+  html += `</tr>`;
+});
+html += `</tbody></table>`;
 
-window.editTag = async function (id, old) {
-  const name = prompt("اسم الوسم الجديد:", old);
-  if (!name || name.trim() === old) return;
-  await updateDoc(doc(db, "tags", id), { name: name.trim() });
-  toast("تم التعديل", "ok");
-  clearTagCache();
-  loadTagsAdmin();
-};
+compWrap.innerHTML = state.branches.length ? html : `<p style="color:var(--text-dim);">لا توجد فروع لعرض المقارنة.</p>`;
+```
 
-window.deleteTag = async function (id, name, type) {
-  if (!confirm(`حذف وسم "${name}"؟`)) return;
-  const field = type === "positive" ? "positives" : "negatives";
-  const snap  = await getDocs(query(collection(db, "surveys"), where(field, "array-contains", id), limit(1)));
-  if (!snap.empty) { toast("الوسم مستخدم في استطلاعات ولا يمكن حذفه", "err"); return; }
-  await deleteDoc(doc(db, "tags", id));
-  toast("تم الحذف", "ok");
-  clearTagCache();
-  loadTagsAdmin();
-};
-
-// ══════════════════════════════════════════════
-// BOOT — init selects on first load
-// ══════════════════════════════════════════════
-(async () => {
-  await Promise.all([
-    fillSelect("call-branch-sel"),
-    fillSelect("import-branch-sel"),
-    fillSelect("cust-branch-filter", "جميع الفروع")
-  ]);
-  const f = $("cust-branch-filter");
-  if (f) f.querySelector("option").value = "";
-
-  loadDashboard();
-})();
+}catch(err){
+console.error(err);
+compWrap.innerHTML = `<p style="color:var(--danger);">تعذر تحميل بيانات المقارنة.</p>`;
+}
+}
