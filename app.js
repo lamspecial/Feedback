@@ -1,4 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+// تمت إضافة مكتبة المصادقة هنا
+import {
+  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
   getDocs, query, orderBy, onSnapshot, serverTimestamp
@@ -18,6 +22,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app); // إعداد المصادقة
 const db = getFirestore(app);
 const storage = getStorage(app);
 
@@ -71,6 +76,77 @@ function toggleTheme() {
 
 $("btnThemeToggle")?.addEventListener("click", toggleTheme);
 $("btnThemeToggleSettings")?.addEventListener("click", toggleTheme);
+
+
+// ===================== المصادقة (Auth) =====================
+let isLoginMode = true;
+
+$("btnToggleAuth").addEventListener("click", () => {
+  isLoginMode = !isLoginMode;
+  $("loginTitle").textContent = isLoginMode ? "تسجيل الدخول" : "إنشاء حساب";
+  $("btnSubmitAuth").textContent = isLoginMode ? "دخول" : "إنشاء الحساب";
+  $("btnToggleAuth").textContent = isLoginMode ? "إنشاء حساب جديد" : "لدي حساب بالفعل";
+  $("authError").textContent = "";
+});
+
+$("btnSubmitAuth").addEventListener("click", async () => {
+  const email = $("authEmail").value.trim();
+  const password = $("authPassword").value;
+  $("authError").textContent = "";
+
+  if (!email || !password) {
+    $("authError").textContent = "يرجى إدخال البريد الإلكتروني وكلمة المرور";
+    return;
+  }
+
+  try {
+    $("btnSubmitAuth").disabled = true;
+    $("btnSubmitAuth").textContent = "جارٍ التحميل...";
+    
+    if (isLoginMode) {
+      await signInWithEmailAndPassword(auth, email, password);
+    } else {
+      await createUserWithEmailAndPassword(auth, email, password);
+    }
+  } catch (err) {
+    console.error(err);
+    let errorMsg = "حدث خطأ في المصادقة";
+    if (err.code === "auth/invalid-email") errorMsg = "البريد الإلكتروني غير صالح";
+    if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") errorMsg = "البريد أو كلمة المرور غير صحيحة";
+    if (err.code === "auth/email-already-in-use") errorMsg = "البريد الإلكتروني مستخدم مسبقاً";
+    if (err.code === "auth/weak-password") errorMsg = "كلمة المرور ضعيفة (يجب أن تكون 6 أحرف على الأقل)";
+    
+    $("authError").textContent = errorMsg;
+    $("btnSubmitAuth").disabled = false;
+    $("btnSubmitAuth").textContent = isLoginMode ? "دخول" : "إنشاء الحساب";
+  }
+});
+
+$("btnLogout")?.addEventListener("click", () => {
+  signOut(auth);
+});
+
+// مراقبة حالة تسجيل الدخول وتوجيه المستخدم
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    $("authEmail").value = "";
+    $("authPassword").value = "";
+    $("btnSubmitAuth").disabled = false;
+    $("btnSubmitAuth").textContent = isLoginMode ? "دخول" : "إنشاء الحساب";
+    
+    showScreen("screen-branch");
+    listenBranches();
+    listenTags();
+  } else {
+    showScreen("screen-login");
+    // إيقاف جلب البيانات عند تسجيل الخروج
+    if (state.unsubBranches) state.unsubBranches();
+    if (state.unsubTags) state.unsubTags();
+    if (state.unsubCustomers) state.unsubCustomers();
+  }
+});
+// ==========================================================
+
 
 function listenBranches() {
   state.unsubBranches = onSnapshot(collection(db, "branches"), snap => {
@@ -385,5 +461,5 @@ $("btnGoReports").addEventListener("click", () => { showScreen("screen-reports")
 $("btnCloseReports").addEventListener("click", () => showScreen("screen-settings"));
 
 try {
-  initTheme(); showScreen("screen-branch"); listenBranches(); listenTags();
-} catch (err) { showToast("حدث خطأ أثناء تحميل البيانات"); }
+  initTheme();
+} catch (err) { console.error(err); }
