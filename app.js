@@ -131,7 +131,7 @@ function listenCustomers() {
   }, err => { showToast("تعذر مزامنة بيانات العملاء"); });
 }
 
-// دالة الفرز المتقدم المطلوبة (المضاف حديثاً -> لم يرد -> المنجز)
+// دالة الفرز المتقدم: المضاف حديثاً -> لم يرد -> المنجز
 function renderCustomers() {
   const list = $("customersList");
   list.innerHTML = "";
@@ -198,7 +198,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// إعداد الاستجابة اللحظية الفوق سريعة للوحة المفاتيح
+// إعداد الاستجابة اللحظية للوحة المفاتيح
 let dialBuffer = "";
 $("btnAddCustomerFab").addEventListener("click", () => {
   dialBuffer = ""; $("customerName").value = ""; $("customerPhone").value = "";
@@ -207,7 +207,7 @@ $("btnAddCustomerFab").addEventListener("click", () => {
 
 $("btnCloseAddCustomer").addEventListener("click", () => showScreen("screen-customers"));
 
-// تحويل الحدث إلى pointerdown للاستجابة في أقل من 0.1 ثانية وحذف التلكؤ
+// تحويل الحدث إلى pointerdown للاستجابة السريعة
 document.querySelectorAll(".dial-key[data-key]").forEach(btn => {
   btn.addEventListener("pointerdown", (e) => {
     e.preventDefault();
@@ -292,7 +292,7 @@ function renderTagToggles(container, selectedSet) {
 
 function findCustomer(id) { return state.customers.find(c => c.id === id); }
 
-// معالجة تشغيل الصوت من الذاكرة المحلية المستقرة
+// معالجة تشغيل الصوت من الذاكرة المحلية
 function openCustomerDetail(id) {
   const c = findCustomer(id);
   if (!c) return;
@@ -325,11 +325,12 @@ function openCustomerDetail(id) {
 }
 
 $("btnCloseDetail").addEventListener("click", () => showScreen("screen-customers"));
+
 $("btnDeleteCustomer").addEventListener("click", async () => {
   if (confirm("هل تود حذف سجل العميل هذا نهائياً من قاعدة البيانات الميدانية؟")) {
     const c = findCustomer(state.selectedCustomerId);
     if (c && c.recordingUrl && c.recordingUrl.startsWith("local:")) {
-      localStorage.removeItem(c.recordingUrl); // تنظيف الذاكرة المحلية للوقاية من الامتلاء
+      localStorage.removeItem(c.recordingUrl); // تنظيف الذاكرة
     }
     await deleteDoc(doc(customersCol(), state.selectedCustomerId));
     showScreen("screen-customers");
@@ -376,12 +377,12 @@ $("btnAnswered").addEventListener("click", () => {
   $("btnAnswered").style.display = "none"; $("postCallActions").style.display = "flex";
 });
 
-// تطبيق وسم "تم" بشكل تلقائي عند الرد وإرسال العميل لشاشة النتائج الناجحة
+// تطبيق وسم "تم" بشكل تلقائي عند الرد
 $("btnYesAnswered").addEventListener("click", async () => {
   const c = findCustomer(state.selectedCustomerId);
   let updatedTags = c ? [...(c.tags || [])] : [];
   if (!updatedTags.includes("تم")) {
-    updatedTags.push("تم"); // حقن الوسم تلقائياً
+    updatedTags.push("تم");
   }
   await updateDoc(doc(customersCol(), state.selectedCustomerId), { 
     answered: true,
@@ -400,7 +401,7 @@ $("btnEndCallScreen").addEventListener("click", () => showScreen("screen-custome
 function openAfterAnswerScreen(id) {
   const c = findCustomer(id);
   state.afterAnswerSelectedTags = new Set(c.tags || []);
-  state.afterAnswerSelectedTags.add("تم"); // ضمان وجود الوسم في الذاكرة الرسومية المؤقتة
+  state.afterAnswerSelectedTags.add("تم"); 
   
   $("afterAnswerName").textContent = c.name || "بدون اسم";
   $("afterAnswerPositiveComment").value = c.positiveComment || "";
@@ -418,7 +419,6 @@ $("btnSaveAfterAnswer").addEventListener("click", async () => {
       recordingUrl = await saveRecordingToLocalStorage(state.pendingAudioBlob, state.selectedCustomerId);
     }
     
-    // إجبارية تضمين وسم تم
     state.afterAnswerSelectedTags.add("تم");
     
     await updateDoc(doc(customersCol(), state.selectedCustomerId), {
@@ -477,7 +477,7 @@ function stopRecording(target) {
 $("btnRecord").addEventListener("click", () => state.mediaRecorder?.state === "recording" ? stopRecording("detail") : startRecording("detail"));
 $("btnRecord2").addEventListener("click", () => state.mediaRecorder?.state === "recording" ? stopRecording("afterAnswer") : startRecording("afterAnswer"));
 
-// دالة إصلاح وحفظ الصوت في ذاكرة المتصفح المحلية بشكل كامل ودائم بدلاً من خادم السحابية
+// دالة حفظ الصوت في ذاكرة المتصفح
 function saveRecordingToLocalStorage(blob, customerId) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
