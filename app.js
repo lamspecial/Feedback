@@ -3,11 +3,8 @@ import {
   getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
   getDocs, query, orderBy, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import {
-  getStorage, ref, uploadBytes, getDownloadURL
-} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-storage.js";
 
-// إعدادات فايربيس الجديدة
+// إعدادات ومفاتيح مشروع فايربيس المحدثة بالكامل
 const firebaseConfig = {
   apiKey: "AIzaSyA7PiCjQYB33DJ_rp9LYmA7QXCUiTBwFNU",
   authDomain: "feedback-52bdd.firebaseapp.com",
@@ -19,9 +16,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
-// SVGs Icon Library
+// مكتبة الرموز الرسومية للنظام SVG
 const ICONS = {
   sun: `<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>`,
   moon: `<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
@@ -32,6 +28,7 @@ const ICONS = {
   trash: `<svg class="icon-svg text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`
 };
 
+// كائن الحالة العام للتطبيق
 const state = {
   branches: [], currentBranchId: null, customers: [], tags: [], selectedCustomerId: null,
   detailSelectedTags: new Set(), afterAnswerSelectedTags: new Set(),
@@ -59,7 +56,9 @@ function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("app-theme", theme);
   const themeIcon = $("themeIcon");
-  if (themeIcon) themeIcon.outerHTML = `<svg class="icon-svg" id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${theme === "dark" ? ICONS.sun.match(/<svg.*?>(.*?)<\/svg>/)[1] : ICONS.moon.match(/<svg.*?>(.*?)<\/svg>/)[1]}</svg>`;
+  if (themeIcon) {
+    themeIcon.outerHTML = `<svg class="icon-svg" id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${theme === "dark" ? ICONS.sun.match(/<svg.*?>(.*?)<\/svg>/)[1] : ICONS.moon.match(/<svg.*?>(.*?)<\/svg>/)[1]}</svg>`;
+  }
 }
 
 function initTheme() { applyTheme(localStorage.getItem("app-theme") || "dark"); }
@@ -72,44 +71,39 @@ function toggleTheme() {
 $("btnThemeToggle")?.addEventListener("click", toggleTheme);
 $("btnThemeToggleSettings")?.addEventListener("click", toggleTheme);
 
-
-// ===================== دخول مفتوح بدون مصادقة =====================
-$("btnLogout")?.addEventListener("click", () => {
-  showScreen("screen-branch");
-});
+// تهيئة الدخول المباشر المفتوح
+$("btnLogout")?.addEventListener("click", () => { showScreen("screen-branch"); });
 
 showScreen("screen-branch");
 listenBranches();
 listenTags();
-// ====================================================================
-
 
 function listenBranches() {
   state.unsubBranches = onSnapshot(collection(db, "branches"), snap => {
     state.branches = [];
     snap.forEach(d => state.branches.push({ id: d.id, ...d.data() }));
     renderBranches();
-  }, err => { showToast("تعذر تحميل الفروع"); });
+  }, err => { showToast("تعذر تحميل الفروع الميدانية"); });
 }
 
 function renderBranches() {
   const list = $("branchList");
-  list.innerHTML = state.branches.length ? "" : `<p style="color:var(--text-dim);text-align:center;padding:30px;">لا توجد فروع بعد.</p>`;
+  list.innerHTML = state.branches.length ? "" : `<p style="color:var(--text-dim);text-align:center;padding:30px;">لا توجد فروع مدرجة بعد.</p>`;
   state.branches.sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar")).forEach(branch => {
     const card = document.createElement("div");
     card.className = "branch-card";
-    card.innerHTML = `<span>${escapeHtml(branch.name)}</span><span class="branch-count">فتح ›</span>`;
+    card.innerHTML = `<span>${escapeHtml(branch.name)}</span><span class="branch-count">فتح السجلات ›</span>`;
     card.addEventListener("click", () => openBranch(branch.id, branch.name));
     list.appendChild(card);
   });
 }
 
 $("btnNewBranch").addEventListener("click", async () => {
-  const name = prompt("اسم الفرع الجديد:");
+  const name = prompt("أدخل اسم الفرع الجديد:");
   if (!name || !name.trim()) return;
   try {
     await addDoc(collection(db, "branches"), { name: name.trim(), createdAt: serverTimestamp() });
-    showToast("تم إنشاء الفرع");
+    showToast("تم إنشاء الفرع بنجاح");
   } catch (err) { showToast("فشل إنشاء الفرع"); }
 });
 
@@ -134,9 +128,10 @@ function listenCustomers() {
     state.customers = [];
     snap.forEach(d => state.customers.push({ id: d.id, ...d.data() }));
     renderCustomers();
-  }, err => { showToast("تعذر تحميل العملاء"); });
+  }, err => { showToast("تعذر مزامنة بيانات العملاء"); });
 }
 
+// دالة الفرز المتقدم المطلوبة (المضاف حديثاً -> لم يرد -> المنجز)
 function renderCustomers() {
   const list = $("customersList");
   list.innerHTML = "";
@@ -145,16 +140,35 @@ function renderCustomers() {
   $("statAnswered").textContent = state.customers.filter(c => c.answered).length;
 
   if (state.customers.length === 0) {
-    list.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:40px;">لا يوجد عملاء بعد.</p>`;
+    list.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:40px;">لا يوجد عملاء مضافين في هذا الفرع.</p>`;
     return;
   }
+
+  // تطبيق فرز المجموعات الثلاث المتقدم
+  state.customers.sort((a, b) => {
+    const getGroupOrder = (c) => {
+      if (c.answered) return 3;               // الفئة الثالثة: الذين تم إنجازهم (في الأسفل)
+      if (c.called && !c.answered) return 2;   // الفئة الثانية: الذين لم يردوا (في الوسط)
+      return 1;                               // الفئة الأولى: المضافون حديثاً / لم يتم الاتصال بهم (في الأعلى)
+    };
+
+    const groupA = getGroupOrder(a);
+    const groupB = getGroupOrder(b);
+
+    if (groupA !== groupB) return groupA - groupB;
+
+    // فرز فرعي داخل نفس الفئة: المضاف حديثاً أولاً بحسب الوقت الميداني
+    const timeA = a.createdAt?.seconds || a.createdAt?.toMillis?.() || 0;
+    const timeB = b.createdAt?.seconds || b.createdAt?.toMillis?.() || 0;
+    return timeB - timeA;
+  });
 
   state.customers.forEach(c => {
     const card = document.createElement("div");
     card.className = "customer-card" + (c.answered ? " answered" : (c.called ? " called" : ""));
     const tagsHtml = (c.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
     const statusClass = c.answered ? "answered" : (c.called ? "called" : "not-called");
-    const statusText = c.answered ? "رد العميل" : (c.called ? "تم الاتصال" : "لم يتصل بعد");
+    const statusText = c.answered ? "تم الرد والإنجاز" : (c.called ? "لم يرد على الاتصال" : "عميل جديد / مضاف حديثاً");
 
     card.innerHTML = `
       <div class="customer-card-top">
@@ -164,10 +178,11 @@ function renderCustomers() {
         </div>
         <span class="status-badge ${statusClass}">${statusText}</span>
       </div>
-      ${c.comment ? `<p class="customer-comment">${escapeHtml(c.comment)}</p>` : ""}
+      ${c.positiveComment ? `<div class="comment-display-positive"><b>الإيجابيات:</b> ${escapeHtml(c.positiveComment)}</div>` : ""}
+      ${c.improvementComment ? `<div class="comment-display-improvement"><b>التحسينات:</b> ${escapeHtml(c.improvementComment)}</div>` : ""}
       <div class="customer-tags">${tagsHtml}</div>
       <div class="customer-card-actions">
-        <button class="card-action-btn card-action-record" data-id="${c.id}">${ICONS.detail} تفاصيل</button>
+        <button class="card-action-btn card-action-record" data-id="${c.id}">${ICONS.detail} تفاصيل وسجلات</button>
         <button class="card-action-btn card-action-call" data-id="${c.id}">${ICONS.call} اتصال</button>
       </div>`;
     
@@ -183,6 +198,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// إعداد الاستجابة اللحظية الفوق سريعة للوحة المفاتيح
 let dialBuffer = "";
 $("btnAddCustomerFab").addEventListener("click", () => {
   dialBuffer = ""; $("customerName").value = ""; $("customerPhone").value = "";
@@ -191,22 +207,40 @@ $("btnAddCustomerFab").addEventListener("click", () => {
 
 $("btnCloseAddCustomer").addEventListener("click", () => showScreen("screen-customers"));
 
+// تحويل الحدث إلى pointerdown للاستجابة في أقل من 0.1 ثانية وحذف التلكؤ
 document.querySelectorAll(".dial-key[data-key]").forEach(btn => {
-  btn.addEventListener("click", () => { dialBuffer += btn.dataset.key; $("customerPhone").value = dialBuffer; });
+  btn.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    dialBuffer += btn.dataset.key;
+    $("customerPhone").value = dialBuffer;
+  });
 });
 
-$("btnBackspace").addEventListener("click", () => {
-  dialBuffer = dialBuffer.slice(0, -1); $("customerPhone").value = dialBuffer;
+$("btnBackspace").addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  dialBuffer = dialBuffer.slice(0, -1);
+  $("customerPhone").value = dialBuffer;
 });
 
 $("btnSaveCustomer").addEventListener("click", async () => {
   const phone = normalizePhone($("customerPhone").value);
-  if (!phone) return showToast("أدخل رقم الجوال");
+  if (!phone) return showToast("الرجاء إدخال رقم الجوال أولاً عبر اللوحة");
   try {
-    await addDoc(customersCol(), { name: $("customerName").value.trim() || "بدون اسم", phone, comment: "", tags: [], called: false, answered: false, recordingUrl: "", createdAt: serverTimestamp() });
-    showToast("تم الحفظ");
+    await addDoc(customersCol(), {
+      name: $("customerName").value.trim() || "بدون اسم",
+      phone,
+      positiveComment: "",
+      improvementComment: "",
+      tags: [],
+      called: false,
+      answered: false,
+      recordingUrl: "",
+      createdAt: serverTimestamp()
+    });
+    showToast("تم حفظ سجل العميل بنجاح");
     dialBuffer = ""; $("customerName").value = ""; $("customerPhone").value = "";
-  } catch (err) { showToast("فشل الحفظ"); }
+    showScreen("screen-customers");
+  } catch (err) { showToast("فشل حفظ العميل في فايربيس"); }
 });
 
 function listenTags() {
@@ -219,13 +253,13 @@ function listenTags() {
 
 function renderSettingsTags() {
   const list = $("settingsTagsList");
-  list.innerHTML = state.tags.length ? "" : `<p style="color:var(--text-dim);">لا توجد أوسمة بعد.</p>`;
+  list.innerHTML = state.tags.length ? "" : `<p style="color:var(--text-dim); text-align:center;">لا توجد أوسمة عامة مخصصة.</p>`;
   state.tags.forEach(tag => {
     const row = document.createElement("div");
     row.className = "settings-tag-row";
     row.innerHTML = `<span>${escapeHtml(tag.name)}</span><button data-id="${tag.id}">${ICONS.trash}</button>`;
     row.querySelector("button").addEventListener("click", async () => {
-      if (confirm(`حذف الوسم "${tag.name}"؟`)) await deleteDoc(doc(db, "tags", tag.id));
+      if (confirm(`هل أنت متأكد من حذف وسم "${tag.name}"؟`)) await deleteDoc(doc(db, "tags", tag.id));
     });
     list.appendChild(row);
   });
@@ -235,17 +269,21 @@ $("btnAddTag").addEventListener("click", async () => {
   const name = $("newTagInput").value.trim();
   if (!name) return;
   await addDoc(collection(db, "tags"), { name, createdAt: serverTimestamp() });
-  $("newTagInput").value = ""; showToast("تم إضافة الوسم");
+  $("newTagInput").value = ""; showToast("تم إضافة الوسم للنظام");
 });
 
 function renderTagToggles(container, selectedSet) {
-  container.innerHTML = state.tags.length ? "" : `<p style="color:var(--text-dim);">لا توجد أوسمة.</p>`;
+  container.innerHTML = state.tags.length ? "" : `<p style="color:var(--text-dim);">لا توجد أوسمة مفعلة.</p>`;
   state.tags.forEach(tag => {
     const btn = document.createElement("button");
     btn.className = "tag-toggle" + (selectedSet.has(tag.name) ? " active" : "");
     btn.textContent = tag.name;
     btn.addEventListener("click", () => {
-      selectedSet.has(tag.name) ? selectedSet.delete(tag.name) : selectedSet.add(tag.name);
+      if (selectedSet.has(tag.name)) {
+        selectedSet.delete(tag.name);
+      } else {
+        selectedSet.add(tag.name);
+      }
       btn.classList.toggle("active");
     });
     container.appendChild(btn);
@@ -254,6 +292,7 @@ function renderTagToggles(container, selectedSet) {
 
 function findCustomer(id) { return state.customers.find(c => c.id === id); }
 
+// معالجة تشغيل الصوت من الذاكرة المحلية المستقرة
 function openCustomerDetail(id) {
   const c = findCustomer(id);
   if (!c) return;
@@ -261,9 +300,25 @@ function openCustomerDetail(id) {
   state.detailSelectedTags = new Set(c.tags || []);
   $("detailName").textContent = c.name || "بدون اسم";
   $("detailPhone").textContent = c.phone || "";
-  $("detailComment").value = c.comment || "";
+  
+  // شحن خانتي الملاحظات المنفصلتين
+  $("detailPositiveComment").value = c.positiveComment || "";
+  $("detailImprovementComment").value = c.improvementComment || "";
+  
   const pb = $("recordPlayback");
-  pb.style.display = c.recordingUrl ? "block" : "none"; pb.src = c.recordingUrl || "";
+  let localAudio = null;
+  if (c.recordingUrl && c.recordingUrl.startsWith("local:")) {
+    localAudio = localStorage.getItem(c.recordingUrl);
+  }
+  
+  if (localAudio) {
+    pb.style.display = "block";
+    pb.src = localAudio;
+  } else {
+    pb.style.display = "none";
+    pb.src = "";
+  }
+  
   resetRecordUI("detail");
   renderTagToggles($("detailTagsWrap"), state.detailSelectedTags);
   showScreen("screen-customer-detail");
@@ -271,7 +326,11 @@ function openCustomerDetail(id) {
 
 $("btnCloseDetail").addEventListener("click", () => showScreen("screen-customers"));
 $("btnDeleteCustomer").addEventListener("click", async () => {
-  if (confirm("حذف هذا العميل نهائيًا؟")) {
+  if (confirm("هل تود حذف سجل العميل هذا نهائياً من قاعدة البيانات الميدانية؟")) {
+    const c = findCustomer(state.selectedCustomerId);
+    if (c && c.recordingUrl && c.recordingUrl.startsWith("local:")) {
+      localStorage.removeItem(c.recordingUrl); // تنظيف الذاكرة المحلية للوقاية من الامتلاء
+    }
     await deleteDoc(doc(customersCol(), state.selectedCustomerId));
     showScreen("screen-customers");
   }
@@ -280,12 +339,18 @@ $("btnDeleteCustomer").addEventListener("click", async () => {
 $("btnSaveDetail").addEventListener("click", async () => {
   try {
     let recordingUrl = findCustomer(state.selectedCustomerId)?.recordingUrl || "";
-    if (state.pendingAudioBlob) recordingUrl = await uploadRecording(state.pendingAudioBlob, state.selectedCustomerId);
+    if (state.pendingAudioBlob) {
+      recordingUrl = await saveRecordingToLocalStorage(state.pendingAudioBlob, state.selectedCustomerId);
+    }
     await updateDoc(doc(customersCol(), state.selectedCustomerId), {
-      comment: $("detailComment").value.trim(), tags: Array.from(state.detailSelectedTags), recordingUrl, updatedAt: serverTimestamp()
+      positiveComment: $("detailPositiveComment").value.trim(),
+      improvementComment: $("detailImprovementComment").value.trim(),
+      tags: Array.from(state.detailSelectedTags),
+      recordingUrl,
+      updatedAt: serverTimestamp()
     });
-    showToast("تم الحفظ"); showScreen("screen-customers");
-  } catch (err) { showToast("فشل الحفظ"); }
+    showToast("تم تحديث البيانات"); showScreen("screen-customers");
+  } catch (err) { showToast("فشل حفظ التعديلات"); }
 });
 
 $("btnCallFromDetail").addEventListener("click", () => openCallScreen(state.selectedCustomerId));
@@ -295,7 +360,7 @@ function openCallScreen(id) {
   state.selectedCustomerId = id;
   $("callName").textContent = c.name || "بدون اسم";
   $("callPhone").textContent = c.phone || "";
-  $("callStatus").textContent = "جاهز للاتصال";
+  $("callStatus").textContent = "جاهز للاتصال الميداني";
   $("btnDial").href = "tel:" + (c.phone || "");
   $("btnDial").style.display = "flex"; $("btnAnswered").style.display = "none"; $("postCallActions").style.display = "none";
   showScreen("screen-call");
@@ -303,7 +368,7 @@ function openCallScreen(id) {
 
 $("btnDial").addEventListener("click", async () => {
   await updateDoc(doc(customersCol(), state.selectedCustomerId), { called: true, lastCallAt: serverTimestamp() });
-  $("callStatus").textContent = "جارٍ الاتصال...";
+  $("callStatus").textContent = "جارٍ إجراء الاتصال الخارجي...";
   $("btnDial").style.display = "none"; $("btnAnswered").style.display = "block";
 });
 
@@ -311,8 +376,17 @@ $("btnAnswered").addEventListener("click", () => {
   $("btnAnswered").style.display = "none"; $("postCallActions").style.display = "flex";
 });
 
+// تطبيق وسم "تم" بشكل تلقائي عند الرد وإرسال العميل لشاشة النتائج الناجحة
 $("btnYesAnswered").addEventListener("click", async () => {
-  await updateDoc(doc(customersCol(), state.selectedCustomerId), { answered: true });
+  const c = findCustomer(state.selectedCustomerId);
+  let updatedTags = c ? [...(c.tags || [])] : [];
+  if (!updatedTags.includes("تم")) {
+    updatedTags.push("تم"); // حقن الوسم تلقائياً
+  }
+  await updateDoc(doc(customersCol(), state.selectedCustomerId), { 
+    answered: true,
+    tags: updatedTags 
+  });
   openAfterAnswerScreen(state.selectedCustomerId);
 });
 
@@ -320,13 +394,18 @@ $("btnNoAnswered").addEventListener("click", async () => {
   await updateDoc(doc(customersCol(), state.selectedCustomerId), { answered: false });
   showScreen("screen-customers");
 });
+
 $("btnEndCallScreen").addEventListener("click", () => showScreen("screen-customers"));
 
 function openAfterAnswerScreen(id) {
   const c = findCustomer(id);
   state.afterAnswerSelectedTags = new Set(c.tags || []);
+  state.afterAnswerSelectedTags.add("تم"); // ضمان وجود الوسم في الذاكرة الرسومية المؤقتة
+  
   $("afterAnswerName").textContent = c.name || "بدون اسم";
-  $("afterAnswerComment").value = c.comment || "";
+  $("afterAnswerPositiveComment").value = c.positiveComment || "";
+  $("afterAnswerImprovementComment").value = c.improvementComment || "";
+  
   resetRecordUI("afterAnswer");
   renderTagToggles($("afterAnswerTagsWrap"), state.afterAnswerSelectedTags);
   showScreen("screen-after-answer");
@@ -335,21 +414,33 @@ function openAfterAnswerScreen(id) {
 $("btnSaveAfterAnswer").addEventListener("click", async () => {
   try {
     let recordingUrl = findCustomer(state.selectedCustomerId)?.recordingUrl || "";
-    if (state.pendingAudioBlob) recordingUrl = await uploadRecording(state.pendingAudioBlob, state.selectedCustomerId);
+    if (state.pendingAudioBlob) {
+      recordingUrl = await saveRecordingToLocalStorage(state.pendingAudioBlob, state.selectedCustomerId);
+    }
+    
+    // إجبارية تضمين وسم تم
+    state.afterAnswerSelectedTags.add("تم");
+    
     await updateDoc(doc(customersCol(), state.selectedCustomerId), {
-      comment: $("afterAnswerComment").value.trim(), tags: Array.from(state.afterAnswerSelectedTags), recordingUrl, updatedAt: serverTimestamp()
+      positiveComment: $("afterAnswerPositiveComment").value.trim(),
+      improvementComment: $("afterAnswerImprovementComment").value.trim(),
+      tags: Array.from(state.afterAnswerSelectedTags),
+      recordingUrl,
+      updatedAt: serverTimestamp()
     });
+    showToast("تم إنجاز المهمة وحفظ التقرير");
     showScreen("screen-customers");
-  } catch (err) { showToast("فشل الحفظ"); }
+  } catch (err) { showToast("فشل إتمام الحفظ الميداني"); }
 });
 
 function resetRecordUI(target) {
   const icon = target === "detail" ? $("recordIcon") : $("recordIcon2");
   const label = target === "detail" ? $("recordLabel") : $("recordLabel2");
   const btn = target === "detail" ? $("btnRecord") : $("btnRecord2");
-  icon.innerHTML = ICONS.mic; label.textContent = "تسجيل ملخص";
+  icon.innerHTML = ICONS.mic; label.textContent = "تسجيل ملخص صوتي";
   btn.classList.remove("recording");
   (target === "detail" ? $("recordTimer") : $("recordTimer2")).textContent = "";
+  state.pendingAudioBlob = null;
 }
 
 async function startRecording(target) {
@@ -370,12 +461,12 @@ async function startRecording(target) {
     const icon = target === "detail" ? $("recordIcon") : $("recordIcon2");
     const label = target === "detail" ? $("recordLabel") : $("recordLabel2");
     const btn = target === "detail" ? $("btnRecord") : $("btnRecord2");
-    icon.innerHTML = ICONS.stop; label.textContent = "إيقاف التسجيل"; btn.classList.add("recording");
+    icon.innerHTML = ICONS.stop; label.textContent = "إيقاف التسجيل الصوتي"; btn.classList.add("recording");
     state.recordTimerInterval = setInterval(() => {
       state.recordSeconds++;
       (target === "detail" ? $("recordTimer") : $("recordTimer2")).textContent = `${String(Math.floor(state.recordSeconds / 60)).padStart(2, "0")}:${String(state.recordSeconds % 60).padStart(2, "0")}`;
     }, 1000);
-  } catch (err) { showToast("تعذر الوصول للميكروفون"); }
+  } catch (err) { showToast("تعذر صلاحية الوصول للميكروفون الخاص بك"); }
 }
 
 function stopRecording(target) {
@@ -386,9 +477,25 @@ function stopRecording(target) {
 $("btnRecord").addEventListener("click", () => state.mediaRecorder?.state === "recording" ? stopRecording("detail") : startRecording("detail"));
 $("btnRecord2").addEventListener("click", () => state.mediaRecorder?.state === "recording" ? stopRecording("afterAnswer") : startRecording("afterAnswer"));
 
-async function uploadRecording(blob, customerId) {
-  const storageRef = ref(storage, `recordings/${state.currentBranchId}/${customerId}_${Date.now()}.webm`);
-  await uploadBytes(storageRef, blob); return await getDownloadURL(storageRef);
+// دالة إصلاح وحفظ الصوت في ذاكرة المتصفح المحلية بشكل كامل ودائم بدلاً من خادم السحابية
+function saveRecordingToLocalStorage(blob, customerId) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result;
+      const localKey = `local:${state.currentBranchId}_${customerId}_audio`;
+      try {
+        localStorage.setItem(localKey, base64String);
+        resolve(localKey);
+      } catch (error) {
+        console.error("Local Storage allocation failed:", error);
+        showToast("تنبيه: مساحة تخزين المتصفح ممتلئة، تم عرض الصوت حالياً دون حفظ دائم");
+        resolve("");
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 $("btnSettings").addEventListener("click", () => showScreen("screen-settings"));
@@ -399,7 +506,7 @@ $("btnCloseReports").addEventListener("click", () => showScreen("screen-settings
 async function renderReports() {
   const currentBox = $("reportTagsCurrentBranch");
   const tableBox = $("reportBranchComparison");
-  currentBox.innerHTML = `<p style="color:var(--text-dim);text-align:center;">جارٍ التحميل...</p>`;
+  currentBox.innerHTML = `<p style="color:var(--text-dim);text-align:center;">جارٍ استخراج التقارير وتحليل الخانات المزدوجة...</p>`;
   tableBox.innerHTML = "";
 
   try {
@@ -415,7 +522,7 @@ async function renderReports() {
           <div class="report-bar-track"><div class="report-bar-fill" style="width:${(count / maxCurrent) * 100}%"></div></div>
           <span class="report-bar-count">${count}</span>
         </div>`).join("")
-      : `<p style="color:var(--text-dim);text-align:center;">لا توجد أوسمة بعد.</p>`;
+      : `<p style="color:var(--text-dim);text-align:center;">لا توجد إحصائيات متوفرة لفرز الأوسمة.</p>`;
 
     const branchCounts = {};
     for (const branch of state.branches) {
@@ -430,28 +537,26 @@ async function renderReports() {
 
     const allTags = state.tags.map(t => t.name);
     if (!allTags.length || !state.branches.length) {
-      tableBox.innerHTML = `<p style="color:var(--text-dim);text-align:center;">لا توجد بيانات كافية للمقارنة.</p>`;
+      tableBox.innerHTML = `<p style="color:var(--text-dim);text-align:center;">لا توجد داتا فروع كافية للمقارنة بين الفروع.</p>`;
       return;
     }
 
-    let tableHtml = `<table class="report-table"><thead><tr><th>الفرع</th>${allTags.map(t => `<th>${escapeHtml(t)}</th>`).join("")}</tr></thead><tbody>`;
+    let tableHtml = `<table class="report-table"><thead><tr><th>الفرع الميداني</th>${allTags.map(t => `<th>${escapeHtml(t)}</th>`).join("")}</tr></thead><tbody>`;
     state.branches.forEach(branch => {
       const counts = branchCounts[branch.name] || {};
-      tableHtml += `<tr><td>${escapeHtml(branch.name)}</td>${allTags.map(t => `<td>${counts[t] || 0}</td>`).join("")}</tr>`;
+      tableHtml += `<tr><td><b>${escapeHtml(branch.name)}</b></td>${allTags.map(t => `<td>${counts[t] || 0}</td>`).join("")}</tr>`;
     });
     tableHtml += `</tbody></table>`;
     tableBox.innerHTML = tableHtml;
   } catch (err) {
     console.error(err);
-    showToast("تعذر تحميل التقارير");
+    showToast("تعذر تحميل جداول التقارير");
   }
 }
 
-try {
-  initTheme();
-} catch (err) { console.error(err); }
+try { initTheme(); } catch (err) { console.error(err); }
 
-// ===================== منع التكبير/التصغير من المتصفح =====================
+// ===================== تهيئة قيود أبعاد المتصفح لمنع التشتت الميداني =====================
 document.addEventListener("wheel", (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && ["+", "-", "=", "0"].includes(e.key)) e.preventDefault();
