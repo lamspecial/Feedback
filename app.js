@@ -1,20 +1,20 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import {
   getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
   getDocs, query, orderBy, onSnapshot, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 import {
   getStorage, ref, uploadBytes, getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-storage.js";
 
+// إعدادات فايربيس الجديدة
 const firebaseConfig = {
-  apiKey: "AIzaSyA0kcj6C_PgrSBfmZ0DE3w0CVQEq5y8WZU",
-  authDomain: "comp-100d1.firebaseapp.com",
-  projectId: "comp-100d1",
-  storageBucket: "comp-100d1.firebasestorage.app",
-  messagingSenderId: "427417913381",
-  appId: "1:427417913381:web:80262b33c432cc540197cc",
-  measurementId: "G-P0XWTP6MTD"
+  apiKey: "AIzaSyA7PiCjQYB33DJ_rp9LYmA7QXCUiTBwFNU",
+  authDomain: "feedback-52bdd.firebaseapp.com",
+  projectId: "feedback-52bdd",
+  storageBucket: "feedback-52bdd.firebasestorage.app",
+  messagingSenderId: "1076566895921",
+  appId: "1:1076566895921:web:6cdd919ba9c09291301410"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -74,7 +74,6 @@ $("btnThemeToggleSettings")?.addEventListener("click", toggleTheme);
 
 
 // ===================== دخول مفتوح بدون مصادقة =====================
-// تم إزالة نظام تسجيل الدخول بالكامل: يدخل أي شخص للنظام مباشرة بدون أي تحقق
 $("btnLogout")?.addEventListener("click", () => {
   showScreen("screen-branch");
 });
@@ -404,7 +403,6 @@ async function renderReports() {
   tableBox.innerHTML = "";
 
   try {
-    // توزيع الأوسمة للفرع الحالي
     const currentCounts = {};
     state.tags.forEach(t => currentCounts[t.name] = 0);
     state.customers.forEach(c => (c.tags || []).forEach(t => { currentCounts[t] = (currentCounts[t] || 0) + 1; }));
@@ -419,8 +417,7 @@ async function renderReports() {
         </div>`).join("")
       : `<p style="color:var(--text-dim);text-align:center;">لا توجد أوسمة بعد.</p>`;
 
-    // مقارنة الفروع حسب الأوسمة
-    const branchCounts = {}; // { branchName: { tagName: count } }
+    const branchCounts = {};
     for (const branch of state.branches) {
       const snap = await getDocs(collection(db, "branches", branch.id, "customers"));
       const counts = {};
