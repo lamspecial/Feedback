@@ -13,7 +13,7 @@
 
 <section id="screen-branch" class="screen active">
   <header class="top-bar">
-    <span></span>
+    <button id="btnThemeToggle" class="icon-btn" title="تبديل المظهر">☀️</button>
     <h2>اختر الفرع</h2>
     <span></span>
   </header>
@@ -197,14 +197,19 @@
   </header>
 
   <div class="settings-wrap">
-    <h3>الأوسمة (التصنيفات)</h3>
-    <div class="tag-add-row">
-      <input id="newTagInput" class="big-input" type="text" placeholder="اسم الوسم الجديد">
-      <button id="btnAddTag" class="btn-primary">إضافة</button>
-    </div>
-    <div class="settings-tags-list" id="settingsTagsList"></div>
+    <h3>المظهر</h3>
+    <button id="btnThemeToggleSettings" class="btn-secondary btn-xl">🌙 / ☀️ تبديل الوضع الداكن والفاتح</button>
 
 ```
+<hr class="divider">
+
+<h3>الأوسمة (التصنيفات)</h3>
+<div class="tag-add-row">
+  <input id="newTagInput" class="big-input" type="text" placeholder="اسم الوسم الجديد">
+  <button id="btnAddTag" class="btn-primary">إضافة</button>
+</div>
+<div class="settings-tags-list" id="settingsTagsList"></div>
+
 <hr class="divider">
 
 <button id="btnGoReports" class="btn-secondary btn-xl">📊 عرض التقارير</button>
