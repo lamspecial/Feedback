@@ -80,10 +80,33 @@ function normalizePhone(p){
 return (p || “”).replace(/[^\d+]/g, “”);
 }
 
-// ===================== بدء التطبيق (بدون مصادقة) =====================
-showScreen(“screen-branch”);
-listenBranches();
-listenTags();
+// ===================== الوضع الداكن / الفاتح =====================
+function applyTheme(theme){
+document.documentElement.setAttribute(“data-theme”, theme);
+localStorage.setItem(“app-theme”, theme);
+const btn = $(“btnThemeToggle”);
+if (btn) btn.textContent = theme === “dark” ? “☀️” : “🌙”;
+}
+
+function initTheme(){
+const saved = localStorage.getItem(“app-theme”);
+const theme = saved || “dark”;
+applyTheme(theme);
+}
+
+function toggleTheme(){
+const current = document.documentElement.getAttribute(“data-theme”) || “dark”;
+applyTheme(current === “dark” ? “light” : “dark”);
+}
+
+const themeBtn = $(“btnThemeToggle”);
+if (themeBtn){
+themeBtn.addEventListener(“click”, toggleTheme);
+}
+const themeBtnSettings = $(“btnThemeToggleSettings”);
+if (themeBtnSettings){
+themeBtnSettings.addEventListener(“click”, toggleTheme);
+}
 
 // ===================== الفروع =====================
 function listenBranches(){
@@ -92,6 +115,9 @@ state.unsubBranches = onSnapshot(branchesRef, (snap) => {
 state.branches = [];
 snap.forEach(d => state.branches.push({ id: d.id, …d.data() }));
 renderBranches();
+}, (err) => {
+console.error(“خطأ في تحميل الفروع:”, err);
+showToast(“تعذر تحميل الفروع، تحقق من قواعد Firestore”);
 });
 }
 
@@ -152,6 +178,9 @@ state.unsubCustomers = onSnapshot(query(customersCol(), orderBy(“createdAt”,
 state.customers = [];
 snap.forEach(d => state.customers.push({ id: d.id, …d.data() }));
 renderCustomers();
+}, (err) => {
+console.error(“خطأ في تحميل العملاء:”, err);
+showToast(“تعذر تحميل العملاء، تحقق من قواعد Firestore”);
 });
 }
 
@@ -284,6 +313,9 @@ state.unsubTags = onSnapshot(collection(db, “tags”), (snap) => {
 state.tags = [];
 snap.forEach(d => state.tags.push({ id: d.id, …d.data() }));
 renderSettingsTags();
+}, (err) => {
+console.error(“خطأ في تحميل الأوسمة:”, err);
+showToast(“تعذر تحميل الأوسمة، تحقق من قواعد Firestore”);
 });
 }
 
@@ -702,4 +734,17 @@ compWrap.innerHTML = state.branches.length ? html : `<p style="color:var(--text-
 console.error(err);
 compWrap.innerHTML = `<p style="color:var(--danger);">تعذر تحميل بيانات المقارنة.</p>`;
 }
+}
+
+// ===================== بدء التطبيق (بدون مصادقة) =====================
+// يُنفَّذ بعد ربط كل أزرار الواجهة أعلاه، ومحاط بـ try/catch
+// حتى لا يوقف أي خطأ في الاتصال بـ Firebase باقي وظائف الأزرار
+try{
+initTheme();
+showScreen(“screen-branch”);
+listenBranches();
+listenTags();
+}catch(err){
+console.error(“فشل بدء التطبيق:”, err);
+showToast(“حدث خطأ أثناء تحميل البيانات، تحقق من الاتصال”);
 }
