@@ -1,5 +1,6 @@
 /* ===================== الأساسيات ===================== */
-:root{
+:root,
+[data-theme="dark"]{
   --bg: #0f1720;
   --surface: #18222e;
   --surface-2: #202c3a;
@@ -12,6 +13,27 @@
   --text-dim: #9aabbf;
   --border: #2a3a4d;
   --radius: 16px;
+  --badge-called-bg: #4a3a1a;
+  --badge-answered-bg: #163d2a;
+  --record-active-bg: #3d1a1a;
+}
+
+[data-theme="light"]{
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --primary: #2e7dff;
+  --primary-dark: #1f5fcc;
+  --success: #1a9c5c;
+  --danger: #d63a3f;
+  --warning: #b87a14;
+  --text: #16202c;
+  --text-dim: #5b6b7c;
+  --border: #dde3ea;
+  --radius: 16px;
+  --badge-called-bg: #fbe9cc;
+  --badge-answered-bg: #d9f0e1;
+  --record-active-bg: #fbe2e2;
 }
 
 *{box-sizing:border-box;}
@@ -24,6 +46,7 @@ html,body{
   font-family: "Tahoma", "Segoe UI", system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
   user-select:none;
+  transition: background-color .2s ease, color .2s ease;
 }
 input,textarea{
   user-select:text;
@@ -269,9 +292,9 @@ button{
   border-radius:999px;
   white-space:nowrap;
 }
-.status-badge.not-called{ background:#2a3a4d; color:var(--text-dim); }
-.status-badge.called{ background:#4a3a1a; color:var(--warning); }
-.status-badge.answered{ background:#163d2a; color:var(--success); }
+.status-badge.not-called{ background:var(--surface-2); color:var(--text-dim); }
+.status-badge.called{ background:var(--badge-called-bg); color:var(--warning); }
+.status-badge.answered{ background:var(--badge-answered-bg); color:var(--success); }
 
 .customer-card-actions{
   display:flex;
@@ -418,7 +441,7 @@ button{
   min-height:60px;
 }
 .record-btn.recording{
-  background:#3d1a1a;
+  background:var(--record-active-bg);
   border-color:var(--danger);
   color:var(--danger);
   animation:pulse 1.2s infinite;
@@ -463,6 +486,8 @@ button{
 .detail-buttons .btn-xl{ margin-top:0; }
 
 /* ===================== شاشة الاتصال (وضع القيادة) ===================== */
+/* تبقى هذه الشاشة داكنة دائمًا (بغض النظر عن المظهر المختار)
+   لتقليل الإجهاد البصري وزيادة التباين أثناء القيادة */
 #screen-call{
   align-items:center;
   justify-content:center;
