@@ -8,25 +8,7 @@
 </head>
 <body>
 
-<section id="screen-login" class="screen active">
-  <div class="login-box">
-    <div class="call-avatar" style="margin: 0 auto 20px;">
-      <svg class="icon-svg" style="width: 70px; height: 70px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    </div>
-    <h1 id="loginTitle">تسجيل الدخول</h1>
-    <p class="subtitle" id="loginSubtitle">مرحباً بك في تطبيق الباحث الميداني</p>
-
-    <input id="authEmail" class="big-input" type="email" placeholder="البريد الإلكتروني" style="text-align: right; direction: ltr;" autocomplete="email">
-    <input id="authPassword" class="big-input" type="password" placeholder="كلمة المرور" style="text-align: right; direction: ltr;" autocomplete="current-password">
-    
-    <p id="authError" class="error-text"></p>
-
-    <button id="btnSubmitAuth" class="btn-primary btn-xl">دخول</button>
-    <button id="btnToggleAuth" class="btn-secondary btn-xl" style="margin-top: 14px;">إنشاء حساب جديد</button>
-  </div>
-</section>
-
-<section id="screen-branch" class="screen">
+<section id="screen-branch" class="screen active">
   <header class="top-bar">
     <button id="btnThemeToggle" class="icon-btn" title="تبديل المظهر">
       <svg class="icon-svg" id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
@@ -48,9 +30,14 @@
       <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </button>
     <h2 id="currentBranchName">اسم الفرع</h2>
-    <button id="btnSettings" class="icon-btn" title="الإعدادات">
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    </button>
+    <div style="display:flex; gap: 8px;">
+      <button id="btnDriveModeToggle" class="icon-btn" title="وضع القيادة والاتصال السريع" style="color: var(--success);">
+        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.4 5.6a10 10 0 1 1-12.8 0M12 2v10"/></svg>
+      </button>
+      <button id="btnSettings" class="icon-btn" title="الإعدادات">
+        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
   </header>
   <div class="quick-stats" id="quickStats">
     <div class="stat-pill"><span id="statTotal">0</span> إجمالي</div>
@@ -130,6 +117,13 @@
 </section>
 
 <section id="screen-call" class="screen">
+  <header class="top-bar">
+    <button id="btnExitDriveMode" class="icon-btn" onclick="showScreen('screen-customers')">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <h2>وضع القيادة الميداني</h2>
+    <span style="width: 46px;"></span>
+  </header>
   <div class="call-wrap">
     <div class="call-avatar">
       <svg class="icon-svg" style="width: 60px; height: 60px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -154,7 +148,7 @@
       </button>
     </div>
 
-    <button id="btnEndCallScreen" class="btn-secondary btn-xl close-call-btn">إغلاق</button>
+    <button id="btnEndCallScreen" class="btn-secondary btn-xl close-call-btn">إنهاء وجدولة</button>
   </div>
 </section>
 
@@ -178,7 +172,7 @@
     <audio id="recordPlayback2" controls style="display:none;width:100%;margin-top:10px;"></audio>
     <label class="field-label">الأوسمة</label>
     <div class="tags-wrap" id="afterAnswerTagsWrap"></div>
-    <button id="btnSaveAfterAnswer" class="btn-primary btn-xl">حفظ وإنهاء</button>
+    <button id="btnSaveAfterAnswer" class="btn-primary btn-xl">حفظ والمكالمة التالية</button>
   </div>
 </section>
 
@@ -202,11 +196,7 @@
     <div class="settings-tags-list" id="settingsTagsList"></div>
     <hr class="divider">
     <button id="btnGoReports" class="btn-secondary btn-xl">
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-4"/></svg> عرض التقارير
-    </button>
-    <hr class="divider">
-    <button id="btnLogout" class="btn-secondary btn-xl" style="color: var(--danger); border-color: var(--danger);">
-      <svg class="icon-svg text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg> تسجيل الخروج
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-4"/></svg> عرض التقارير والمقارنات
     </button>
   </div>
 </section>
@@ -216,14 +206,14 @@
     <button id="btnCloseReports" class="icon-btn">
       <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
-    <h2>التقارير والمقارنة</h2>
+    <h2>التقارير والمقارنة الفورية</h2>
     <span style="width: 46px;"></span>
   </header>
   <div class="reports-wrap">
     <h3>توزيع الأوسمة (الفرع الحالي)</h3>
     <div id="reportTagsCurrentBranch" class="report-bars"></div>
     <hr class="divider">
-    <h3>مقارنة الفروع حسب الأوسمة</h3>
+    <h3>مقارنة الفروع الشاملة حسب الأوسمة والتصنيفات</h3>
     <div id="reportBranchComparison" class="report-table-wrap"></div>
   </div>
 </section>
