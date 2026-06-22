@@ -1,15 +1,9 @@
 // ===================================================================
 // app.js — منطق تطبيق متابعة الباحث الميداني
-// Firebase: Auth + Firestore + Storage
+// Firebase: Firestore + Storage (بدون مصادقة)
 // ===================================================================
 
 import { initializeApp } from “https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js”;
-import {
-getAuth,
-signInWithEmailAndPassword,
-onAuthStateChanged,
-signOut
-} from “https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js”;
 import {
 getFirestore,
 collection,
@@ -44,13 +38,11 @@ measurementId: “G-P0XWTP6MTD”
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
 // ===================== حالة التطبيق =====================
 const state = {
-user: null,
 branches: [],          // { id, name }
 currentBranchId: null,
 customers: [],          // عملاء الفرع الحالي (مع id)
@@ -88,40 +80,10 @@ function normalizePhone(p){
 return (p || “”).replace(/[^\d+]/g, “”);
 }
 
-// ===================== تسجيل الدخول =====================
-$(“btnLogin”).addEventListener(“click”, async () => {
-const email = $(“loginEmail”).value.trim();
-const password = $(“loginPassword”).value;
-$(“loginError”).textContent = “”;
-if (!email || !password){
-$(“loginError”).textContent = “يرجى إدخال البريد وكلمة المرور”;
-return;
-}
-try{
-await signInWithEmailAndPassword(auth, email, password);
-}catch(err){
-$(“loginError”).textContent = “تعذر تسجيل الدخول: تحقق من البيانات”;
-console.error(err);
-}
-});
-
-$(“btnLogout”).addEventListener(“click”, async () => {
-await signOut(auth);
-});
-
-onAuthStateChanged(auth, (user) => {
-state.user = user;
-if (user){
+// ===================== بدء التطبيق (بدون مصادقة) =====================
 showScreen(“screen-branch”);
 listenBranches();
 listenTags();
-} else {
-showScreen(“screen-login”);
-if (state.unsubBranches) state.unsubBranches();
-if (state.unsubCustomers) state.unsubCustomers();
-if (state.unsubTags) state.unsubTags();
-}
-});
 
 // ===================== الفروع =====================
 function listenBranches(){
@@ -157,8 +119,7 @@ if (!name || !name.trim()) return;
 try{
 await addDoc(collection(db, “branches”), {
 name: name.trim(),
-createdAt: serverTimestamp(),
-createdBy: state.user?.email || “unknown”
+createdAt: serverTimestamp()
 });
 showToast(“تم إنشاء الفرع”);
 }catch(err){
@@ -303,8 +264,7 @@ tags: [],
 called: false,
 answered: false,
 recordingUrl: “”,
-createdAt: serverTimestamp(),
-createdBy: state.user?.email || “unknown”
+createdAt: serverTimestamp()
 });
 showToast(“تم الحفظ”);
 // إعادة التهيئة تلقائيًا للإدخال التالي
