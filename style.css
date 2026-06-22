@@ -129,7 +129,6 @@ body {
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
-  /* منع استجابة اللمس الافتراضية للمتصفح لدعم الاستجابة في أقل من 0.1 ثانية */
   touch-action: manipulation;
   pointer-events: auto;
 }
