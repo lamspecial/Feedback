@@ -1,8 +1,4 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-// تمت إضافة مكتبة المصادقة هنا
-import {
-  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
   getDocs, query, orderBy, onSnapshot, serverTimestamp
@@ -22,7 +18,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app); // إعداد المصادقة
 const db = getFirestore(app);
 const storage = getStorage(app);
 
@@ -64,7 +59,9 @@ function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("app-theme", theme);
   const themeIcon = $("themeIcon");
-  if (themeIcon) themeIcon.outerHTML = `<svg class="icon-svg" id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${theme === "dark" ? ICONS.sun.match(/<svg.*?>(.*?)<\/svg>/)[1] : ICONS.moon.match(/<svg.*?>(.*?)<\/svg>/)[1]}</svg>`;
+  if (themeIcon) {
+    themeIcon.outerHTML = `<svg class="icon-svg" id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${theme === "dark" ? ICONS.sun.match(/<svg.*?>(.*?)<\/svg>/)[1] : ICONS.moon.match(/<svg.*?>(.*?)<\/svg>/)[1]}</svg>`;
+  }
 }
 
 function initTheme() { applyTheme(localStorage.getItem("app-theme") || "dark"); }
@@ -77,76 +74,13 @@ function toggleTheme() {
 $("btnThemeToggle")?.addEventListener("click", toggleTheme);
 $("btnThemeToggleSettings")?.addEventListener("click", toggleTheme);
 
-
-// ===================== المصادقة (Auth) =====================
-let isLoginMode = true;
-
-$("btnToggleAuth").addEventListener("click", () => {
-  isLoginMode = !isLoginMode;
-  $("loginTitle").textContent = isLoginMode ? "تسجيل الدخول" : "إنشاء حساب";
-  $("btnSubmitAuth").textContent = isLoginMode ? "دخول" : "إنشاء الحساب";
-  $("btnToggleAuth").textContent = isLoginMode ? "إنشاء حساب جديد" : "لدي حساب بالفعل";
-  $("authError").textContent = "";
+// تشغيل التطبيق مباشرة دون شاشة مصادقة
+window.addEventListener("DOMContentLoaded", () => {
+  initTheme();
+  showScreen("screen-branch");
+  listenBranches();
+  listenTags();
 });
-
-$("btnSubmitAuth").addEventListener("click", async () => {
-  const email = $("authEmail").value.trim();
-  const password = $("authPassword").value;
-  $("authError").textContent = "";
-
-  if (!email || !password) {
-    $("authError").textContent = "يرجى إدخال البريد الإلكتروني وكلمة المرور";
-    return;
-  }
-
-  try {
-    $("btnSubmitAuth").disabled = true;
-    $("btnSubmitAuth").textContent = "جارٍ التحميل...";
-    
-    if (isLoginMode) {
-      await signInWithEmailAndPassword(auth, email, password);
-    } else {
-      await createUserWithEmailAndPassword(auth, email, password);
-    }
-  } catch (err) {
-    console.error(err);
-    let errorMsg = "حدث خطأ في المصادقة";
-    if (err.code === "auth/invalid-email") errorMsg = "البريد الإلكتروني غير صالح";
-    if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") errorMsg = "البريد أو كلمة المرور غير صحيحة";
-    if (err.code === "auth/email-already-in-use") errorMsg = "البريد الإلكتروني مستخدم مسبقاً";
-    if (err.code === "auth/weak-password") errorMsg = "كلمة المرور ضعيفة (يجب أن تكون 6 أحرف على الأقل)";
-    
-    $("authError").textContent = errorMsg;
-    $("btnSubmitAuth").disabled = false;
-    $("btnSubmitAuth").textContent = isLoginMode ? "دخول" : "إنشاء الحساب";
-  }
-});
-
-$("btnLogout")?.addEventListener("click", () => {
-  signOut(auth);
-});
-
-// مراقبة حالة تسجيل الدخول وتوجيه المستخدم
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    $("authEmail").value = "";
-    $("authPassword").value = "";
-    $("btnSubmitAuth").disabled = false;
-    $("btnSubmitAuth").textContent = isLoginMode ? "دخول" : "إنشاء الحساب";
-    
-    showScreen("screen-branch");
-    listenBranches();
-    listenTags();
-  } else {
-    showScreen("screen-login");
-    // إيقاف جلب البيانات عند تسجيل الخروج
-    if (state.unsubBranches) state.unsubBranches();
-    if (state.unsubTags) state.unsubTags();
-    if (state.unsubCustomers) state.unsubCustomers();
-  }
-});
-// ==========================================================
-
 
 function listenBranches() {
   state.unsubBranches = onSnapshot(collection(db, "branches"), snap => {
@@ -270,6 +204,7 @@ $("btnSaveCustomer").addEventListener("click", async () => {
     await addDoc(customersCol(), { name: $("customerName").value.trim() || "بدون اسم", phone, comment: "", tags: [], called: false, answered: false, recordingUrl: "", createdAt: serverTimestamp() });
     showToast("تم الحفظ");
     dialBuffer = ""; $("customerName").value = ""; $("customerPhone").value = "";
+    showScreen("screen-customers");
   } catch (err) { showToast("فشل الحفظ"); }
 });
 
@@ -354,8 +289,16 @@ $("btnSaveDetail").addEventListener("click", async () => {
 
 $("btnCallFromDetail").addEventListener("click", () => openCallScreen(state.selectedCustomerId));
 
+// وضع القيادة والمكالمات الفورية
+$("btnDriveModeToggle")?.addEventListener("click", () => {
+  if(state.customers.length === 0) return showToast("لا يوجد عملاء للاتصال بهم");
+  const nextCustomer = state.customers.find(c => !c.called) || state.customers[0];
+  openCallScreen(nextCustomer.id);
+});
+
 function openCallScreen(id) {
   const c = findCustomer(id);
+  if(!c) return;
   state.selectedCustomerId = id;
   $("callName").textContent = c.name || "بدون اسم";
   $("callPhone").textContent = c.phone || "";
@@ -382,8 +325,9 @@ $("btnYesAnswered").addEventListener("click", async () => {
 
 $("btnNoAnswered").addEventListener("click", async () => {
   await updateDoc(doc(customersCol(), state.selectedCustomerId), { answered: false });
-  showScreen("screen-customers");
+  moveToNextCallOrExit();
 });
+
 $("btnEndCallScreen").addEventListener("click", () => showScreen("screen-customers"));
 
 function openAfterAnswerScreen(id) {
@@ -403,17 +347,29 @@ $("btnSaveAfterAnswer").addEventListener("click", async () => {
     await updateDoc(doc(customersCol(), state.selectedCustomerId), {
       comment: $("afterAnswerComment").value.trim(), tags: Array.from(state.afterAnswerSelectedTags), recordingUrl, updatedAt: serverTimestamp()
     });
-    showScreen("screen-customers");
+    moveToNextCallOrExit();
   } catch (err) { showToast("فشل الحفظ"); }
 });
+
+function moveToNextCallOrExit() {
+  const next = state.customers.find(c => !c.called && c.id !== state.selectedCustomerId);
+  if (next) {
+    openCallScreen(next.id);
+  } else {
+    showToast("تم الانتهاء من جميع العملاء");
+    showScreen("screen-customers");
+  }
+}
 
 function resetRecordUI(target) {
   const icon = target === "detail" ? $("recordIcon") : $("recordIcon2");
   const label = target === "detail" ? $("recordLabel") : $("recordLabel2");
   const btn = target === "detail" ? $("btnRecord") : $("btnRecord2");
-  icon.innerHTML = ICONS.mic; label.textContent = "تسجيل ملخص";
-  btn.classList.remove("recording");
-  (target === "detail" ? $("recordTimer") : $("recordTimer2")).textContent = "";
+  if(icon) icon.innerHTML = ICONS.mic; 
+  if(label) label.textContent = "تسجيل ملخص";
+  if(btn) btn.classList.remove("recording");
+  const timer = target === "detail" ? $("recordTimer") : $("recordTimer2");
+  if(timer) timer.textContent = "";
 }
 
 async function startRecording(target) {
@@ -434,10 +390,13 @@ async function startRecording(target) {
     const icon = target === "detail" ? $("recordIcon") : $("recordIcon2");
     const label = target === "detail" ? $("recordLabel") : $("recordLabel2");
     const btn = target === "detail" ? $("btnRecord") : $("btnRecord2");
-    icon.innerHTML = ICONS.stop; label.textContent = "إيقاف التسجيل"; btn.classList.add("recording");
+    if(icon) icon.innerHTML = ICONS.stop; 
+    if(label) label.textContent = "إيقاف التسجيل"; 
+    if(btn) btn.classList.add("recording");
     state.recordTimerInterval = setInterval(() => {
       state.recordSeconds++;
-      (target === "detail" ? $("recordTimer") : $("recordTimer2")).textContent = `${String(Math.floor(state.recordSeconds / 60)).padStart(2, "0")}:${String(state.recordSeconds % 60).padStart(2, "0")}`;
+      const timer = target === "detail" ? $("recordTimer") : $("recordTimer2");
+      if(timer) timer.textContent = `${String(Math.floor(state.recordSeconds / 60)).padStart(2, "0")}:${String(state.recordSeconds % 60).padStart(2, "0")}`;
     }, 1000);
   } catch (err) { showToast("تعذر الوصول للميكروفون"); }
 }
@@ -447,8 +406,8 @@ function stopRecording(target) {
   clearInterval(state.recordTimerInterval); resetRecordUI(target);
 }
 
-$("btnRecord").addEventListener("click", () => state.mediaRecorder?.state === "recording" ? stopRecording("detail") : startRecording("detail"));
-$("btnRecord2").addEventListener("click", () => state.mediaRecorder?.state === "recording" ? stopRecording("afterAnswer") : startRecording("afterAnswer"));
+$("btnRecord")?.addEventListener("click", () => state.mediaRecorder?.state === "recording" ? stopRecording("detail") : startRecording("detail"));
+$("btnRecord2")?.addEventListener("click", () => state.mediaRecorder?.state === "recording" ? stopRecording("afterAnswer") : startRecording("afterAnswer"));
 
 async function uploadRecording(blob, customerId) {
   const storageRef = ref(storage, `recordings/${state.currentBranchId}/${customerId}_${Date.now()}.webm`);
@@ -457,9 +416,50 @@ async function uploadRecording(blob, customerId) {
 
 $("btnSettings").addEventListener("click", () => showScreen("screen-settings"));
 $("btnCloseSettings").addEventListener("click", () => showScreen("screen-customers"));
-$("btnGoReports").addEventListener("click", () => { showScreen("screen-reports"); });
+
+// تشغيل نظام التقارير والمقارنات الذكي
+$("btnGoReports").addEventListener("click", async () => { 
+  showScreen("screen-reports"); 
+  await buildReports();
+});
 $("btnCloseReports").addEventListener("click", () => showScreen("screen-settings"));
 
-try {
-  initTheme();
-} catch (err) { console.error(err); }
+async function buildReports() {
+  const tagsCount = {};
+  state.customers.forEach(c => {
+    (c.tags || []).forEach(t => { tagsCount[t] = (tagsCount[t] || 0) + 1; });
+  });
+  
+  const currentBranchWrap = $("reportTagsCurrentBranch");
+  currentBranchWrap.innerHTML = "";
+  Object.keys(tagsCount).forEach(tag => {
+    const pct = state.customers.length ? Math.round((tagsCount[tag] / state.customers.length) * 100) : 0;
+    currentBranchWrap.innerHTML += `
+      <div class="report-bar-row">
+        <div class="report-bar-label"><span>${escapeHtml(tag)}</span><span>${tagsCount[tag]} عميل (${pct}%)</span></div>
+        <div class="report-bar-track"><div class="report-bar-fill" style="width: ${pct}%"></div></div>
+      </div>`;
+  });
+
+  const compWrap = $("reportBranchComparison");
+  compWrap.innerHTML = `<table class="report-table"><thead><tr id="th-row"><th>الفرع</th></tr></thead><tbody id="tb-body"></tbody></table>`;
+  
+  const allTags = state.tags.map(t => t.name);
+  allTags.forEach(t => {
+    const th = document.createElement("th"); th.textContent = t;
+    $("th-row").appendChild(th);
+  });
+
+  for (let branch of state.branches) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${escapeHtml(branch.name)}</td>`;
+    const bCustSnap = await getDocs(collection(db, "branches", branch.id, "customers"));
+    const bTags = {};
+    bCustSnap.forEach(d => { (d.data().tags || []).forEach(t => bTags[t] = (bTags[t] || 0) + 1); });
+    
+    allTags.forEach(t => {
+      tr.innerHTML += `<td>${bTags[t] || 0}</td>`;
+    });
+    $("tb-body").appendChild(tr);
+  }
+}
