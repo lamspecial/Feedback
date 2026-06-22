@@ -1,257 +1,260 @@
 <!DOCTYPE html>
+
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-  <title>نظام رضا العملاء</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>متابعة الباحث الميداني</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<nav class="navbar">
-  <div class="navbar-brand"><span>📋</span> رضا العملاء</div>
-  <div style="display:flex;gap:.5rem;align-items:center">
-    <button class="btn btn-ghost btn-sm" onclick="showPage('import')" style="font-size:.8rem">+ استيراد</button>
-  </div>
-</nav>
+<!-- ===================== شاشة تسجيل الدخول ===================== -->
 
-<div class="page active" id="page-dashboard">
-  <div class="page-header">
-    <h2 class="page-title">الرئيسية</h2>
-    <button class="btn btn-secondary btn-sm" onclick="loadDashboard()">↻</button>
+<section id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="logo-circle">📞</div>
+    <h1>متابعة الباحث الميداني</h1>
+    <p class="subtitle">سجّل دخولك لبدء جولة اليوم</p>
+    <input id="loginEmail" type="email" placeholder="البريد الإلكتروني" autocomplete="username">
+    <input id="loginPassword" type="password" placeholder="كلمة المرور" autocomplete="current-password">
+    <button id="btnLogin" class="btn-primary btn-xl">دخول</button>
+    <p id="loginError" class="error-text"></p>
+  </div>
+</section>
+
+<!-- ===================== شاشة اختيار الفرع ===================== -->
+
+<section id="screen-branch" class="screen">
+  <header class="top-bar">
+    <button id="btnLogout" class="icon-btn" title="خروج">⎋</button>
+    <h2>اختر الفرع</h2>
+    <span></span>
+  </header>
+
+  <div class="branch-list" id="branchList">
+    <!-- تُعبأ بواسطة JS -->
   </div>
 
-  <div class="kpi-grid" id="kpi-grid">
-    <div class="kpi-card"><div class="loading" style="width:20px;height:20px;border-width:2px;margin:.4rem auto"></div></div>
-    <div class="kpi-card"></div><div class="kpi-card"></div><div class="kpi-card"></div>
+  <div class="branch-actions">
+    <button id="btnNewBranch" class="btn-secondary btn-xl">+ فرع جديد</button>
+  </div>
+</section>
+
+<!-- ===================== شاشة قائمة العملاء (البطاقات) ===================== -->
+
+<section id="screen-customers" class="screen">
+  <header class="top-bar">
+    <button id="btnBackToBranches" class="icon-btn">→</button>
+    <h2 id="currentBranchName">اسم الفرع</h2>
+    <button id="btnSettings" class="icon-btn" title="الإعدادات">⚙</button>
+  </header>
+
+  <div class="quick-stats" id="quickStats">
+    <div class="stat-pill"><span id="statTotal">0</span> إجمالي</div>
+    <div class="stat-pill"><span id="statCalled">0</span> تم الاتصال</div>
+    <div class="stat-pill"><span id="statAnswered">0</span> رد</div>
   </div>
 
-  <div class="card">
-    <div class="card-header"><span class="card-title" style="color:var(--pos)">✦ أبرز الإشادات</span></div>
-    <div id="dash-pos"><div class="loading"></div></div>
+  <div class="customers-list" id="customersList">
+    <!-- بطاقات العملاء -->
   </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title" style="color:var(--neg)">◈ أبرز الشكاوى</span></div>
-    <div id="dash-neg"><div class="loading"></div></div>
-  </div>
+
+<button id="btnAddCustomerFab" class="fab">+</button>
+
+</section>
+
+<!-- ===================== شاشة إضافة عميل (لوحة طلب خفيفة) ===================== -->
+
+<section id="screen-add-customer" class="screen">
+  <header class="top-bar">
+    <button id="btnCloseAddCustomer" class="icon-btn">✕</button>
+    <h2>إضافة عميل</h2>
+    <span></span>
+  </header>
+
+  <div class="dialpad-wrap">
+    <input id="customerName" class="big-input" type="text" placeholder="اسم العميل" autocomplete="off">
+    <input id="customerPhone" class="big-input phone-display" type="text" placeholder="رقم الجوال" readonly>
+
+```
+<div class="dialpad">
+  <button class="dial-key" data-key="1">1</button>
+  <button class="dial-key" data-key="2">2</button>
+  <button class="dial-key" data-key="3">3</button>
+  <button class="dial-key" data-key="4">4</button>
+  <button class="dial-key" data-key="5">5</button>
+  <button class="dial-key" data-key="6">6</button>
+  <button class="dial-key" data-key="7">7</button>
+  <button class="dial-key" data-key="8">8</button>
+  <button class="dial-key" data-key="9">9</button>
+  <button class="dial-key dial-empty"></button>
+  <button class="dial-key" data-key="0">0</button>
+  <button class="dial-key dial-backspace" id="btnBackspace">⌫</button>
 </div>
 
-<div class="page" id="page-call">
-  <div class="page-header">
-    <h2 class="page-title">الاتصال</h2>
-    <button class="btn btn-ghost btn-sm" id="change-branch-btn" onclick="resetCallScreen()" style="display:none">تغيير الفرع</button>
+<button id="btnSaveCustomer" class="btn-primary btn-xl">حفظ والتالي</button>
+<p id="addCustomerHint" class="hint-text">يتم الحفظ والعودة تلقائيًا لإدخال عميل جديد</p>
+```
+
   </div>
+</section>
 
-  <div id="call-setup" class="card">
-    <div class="form-group" style="margin-bottom:.75rem">
-      <label class="form-label">اختر الفرع للبدء</label>
-      <select class="form-control" id="call-branch-sel"></select>
-    </div>
-    <button class="btn btn-primary btn-block" onclick="startCalling()">بدء الاتصالات</button>
-  </div>
+<!-- ===================== شاشة تفاصيل العميل / التعليق والوسوم ===================== -->
 
-  <div id="call-interface" style="display:none">
-    <div class="call-progress">
-      <span id="call-progress-txt" style="min-width:45px">0 / 0</span>
-      <div class="progress-track"><div class="progress-fill" id="call-pbar"></div></div>
-      <button class="btn btn-ghost btn-sm" onclick="skipCustomer()">تخطي ←</button>
-    </div>
+<section id="screen-customer-detail" class="screen">
+  <header class="top-bar">
+    <button id="btnCloseDetail" class="icon-btn">✕</button>
+    <h2>تفاصيل العميل</h2>
+    <button id="btnDeleteCustomer" class="icon-btn" title="حذف">🗑</button>
+  </header>
 
-    <div class="call-customer-card">
-      <div>
-        <div class="call-name" id="call-name">—</div>
-        <div class="call-phone" id="call-phone">—</div>
-      </div>
-      <a id="call-tel" href="#" class="call-dial">📞</a>
-    </div>
+  <div class="detail-wrap">
+    <h3 id="detailName">—</h3>
+    <p id="detailPhone" class="phone-big">—</p>
 
-    <div class="tags-label pos">✦ الإيجابيات</div>
-    <div class="tag-group" id="pos-tags"></div>
+```
+<label class="field-label">تعليق العميل</label>
+<textarea id="detailComment" class="big-textarea" placeholder="اكتب ملاحظة عن العميل..."></textarea>
 
-    <div class="tags-label neg">◈ السلبيات</div>
-    <div class="tag-group" id="neg-tags"></div>
-
-    <div class="form-group">
-      <label class="form-label">ملاحظات إيجابية</label>
-      <textarea class="form-control" id="pos-notes" rows="2" placeholder="اكتب هنا..."></textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">ملاحظات سلبية</label>
-      <textarea class="form-control" id="neg-notes" rows="2" placeholder="اكتب هنا..."></textarea>
-    </div>
-
-    <button class="btn btn-success btn-block btn-xl" id="save-btn" onclick="saveSurveyAndNext()">
-      حفظ والانتقال للعميل التالي ←
-    </button>
-  </div>
-</div>
-
-<div class="page" id="page-customers">
-  <div class="page-header">
-    <h2 class="page-title">العملاء</h2>
-  </div>
-
-  <div class="form-group">
-    <input type="search" class="form-control" placeholder="ابحث بالاسم أو الجوال..." oninput="searchCustomers(this.value)">
-  </div>
-  <div class="form-group">
-    <select class="form-control" id="cust-branch-filter" onchange="filterCustBranch(this.value)">
-      <option value="">جميع الفروع</option>
-    </select>
-  </div>
-
-  <ul class="c-list" id="cust-list"><li><div class="loading"></div></li></ul>
-  <button class="btn btn-secondary btn-block" id="load-more-btn" style="display:none" onclick="loadMoreCustomers()">تحميل المزيد</button>
-</div>
-
-<div class="page" id="page-profile">
-  <div class="page-header">
-    <button class="btn btn-ghost btn-sm" onclick="goBack()">← رجوع</button>
-    <h2 class="page-title">سجل العميل</h2>
-    <div style="width:56px"></div>
-  </div>
-  <div id="profile-content"><div class="loading"></div></div>
-</div>
-
-<div class="page" id="page-import">
-  <div class="page-header">
-    <button class="btn btn-ghost btn-sm" onclick="goBack()">← رجوع</button>
-    <h2 class="page-title">استيراد العملاء</h2>
-    <div style="width:56px"></div>
-  </div>
-
-  <div class="card">
-    <div class="form-group">
-      <label class="form-label">الفرع</label>
-      <select class="form-control" id="import-branch-sel"></select>
-    </div>
-
-    <div class="import-tabs">
-      <button class="itab active" onclick="switchImportTab('text',this)">نص</button>
-      <button class="itab" onclick="switchImportTab('excel',this)">Excel</button>
-    </div>
-
-    <div id="text-section">
-      <div class="form-group">
-        <label class="form-label">أرقام الجوال — كل رقم في سطر</label>
-        <textarea class="form-control" id="import-text" rows="9"
-          placeholder="0551111111 (محمد)&#10;0552222222 (خالد)&#10;0553333333"></textarea>
-      </div>
-    </div>
-
-    <div id="excel-section" style="display:none">
-      <label class="audio-area" onclick="document.getElementById('xlsx-input').click()">
-        <div>📊 اضغط لاختيار ملف Excel</div>
-        <div style="font-size:.78rem;margin-top:.25rem;color:var(--ink-3)">.xlsx / .xls</div>
-        <input type="file" id="xlsx-input" accept=".xlsx,.xls" onchange="handleXlsx(this)" style="display:none">
-      </label>
-      <div id="xlsx-name" style="font-size:.84rem;color:var(--pos);display:none;margin-top:.4rem"></div>
-    </div>
-
-    <div class="prog-wrap" id="prog-wrap"><div class="prog-fill" id="prog-fill"></div></div>
-    <button class="btn btn-primary btn-block" id="import-btn" onclick="doImport()">بدء الاستيراد</button>
-    <div class="import-result" id="import-result"></div>
-  </div>
-</div>
-
-<div class="page" id="page-reports">
-  <div class="page-header">
-    <h2 class="page-title">التقارير</h2>
-    <button class="btn btn-secondary btn-sm" onclick="loadReports()">↻</button>
-  </div>
-
-  <div class="branch-bar" id="rpt-branch-bar">
-    <button class="bfilter active">جميع الفروع</button>
-  </div>
-
-  <div class="card">
-    <div id="tag-report"><div class="loading"></div></div>
-  </div>
-
-  <div class="card" id="branch-cmp-card">
-    <div class="card-header"><span class="card-title">مقارنة الفروع</span></div>
-    <div id="branch-cmp"><div class="loading"></div></div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">آراء العملاء</span>
-      <button class="btn btn-ghost btn-sm" onclick="refreshSnippets()">↻</button>
-    </div>
-    <div class="snippet-grid" id="snippets"><div class="loading"></div></div>
-  </div>
-</div>
-
-<div class="page" id="page-admin">
-  <div class="page-header">
-    <h2 class="page-title">الإدارة</h2>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">الفروع</span>
-      <button class="btn btn-primary btn-sm" onclick="toggleAddBranch()">+ إضافة</button>
-    </div>
-    <div class="inline-add" id="add-branch-form">
-      <input type="text" class="form-control" id="new-branch-name" placeholder="اسم الفرع">
-      <button class="btn btn-success btn-sm" onclick="addBranch()">إضافة</button>
-      <button class="btn btn-ghost btn-sm" onclick="toggleAddBranch()">✕</button>
-    </div>
-    <ul class="admin-list" id="branch-list"><li><div class="loading"></div></li></ul>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title" style="color:var(--pos)">✦ الوسوم الإيجابية</span>
-      <button class="btn btn-success btn-sm" onclick="toggleAddTag('positive')">+ إضافة</button>
-    </div>
-    <div class="inline-add" id="add-pos-tag-form">
-      <input type="text" class="form-control" id="new-pos-tag" placeholder="اسم الوسم">
-      <button class="btn btn-success btn-sm" onclick="addTag('positive')">إضافة</button>
-      <button class="btn btn-ghost btn-sm" onclick="toggleAddTag('positive')">✕</button>
-    </div>
-    <ul class="admin-list" id="pos-tag-list"></ul>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title" style="color:var(--neg)">◈ الوسوم السلبية</span>
-      <button class="btn btn-danger btn-sm" onclick="toggleAddTag('negative')">+ إضافة</button>
-    </div>
-    <div class="inline-add" id="add-neg-tag-form">
-      <input type="text" class="form-control" id="new-neg-tag" placeholder="اسم الوسم">
-      <button class="btn btn-danger btn-sm" onclick="addTag('negative')">إضافة</button>
-      <button class="btn btn-ghost btn-sm" onclick="toggleAddTag('negative')">✕</button>
-    </div>
-    <ul class="admin-list" id="neg-tag-list"></ul>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<div class="bottom-nav">
-  <button class="bnav-item active" data-p="dashboard" onclick="showPage('dashboard', this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-    الرئيسية
+<div class="record-row">
+  <button id="btnRecord" class="record-btn">
+    <span id="recordIcon">🎙</span>
+    <span id="recordLabel">تسجيل ملخص صوتي</span>
   </button>
-  <button class="bnav-item" data-p="call" onclick="showPage('call', this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.82 19.79 19.79 0 01.4 2.18 2 2 0 012.18 0H5a2 2 0 012 1.72 12.05 12.05 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.05 12.05 0 002.81.7A2 2 0 0122 16.92z"/></svg>
-    الاتصال
-  </button>
-  <button class="bnav-item" data-p="customers" onclick="showPage('customers', this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-    العملاء
-  </button>
-  <button class="bnav-item" data-p="reports" onclick="showPage('reports', this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    التقارير
-  </button>
-  <button class="bnav-item" data-p="admin" onclick="showPage('admin', this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M12 14c-6 0-8 2-8 3v1h16v-1c0-1-2-3-8-3z"/></svg>
-    الإدارة
-  </button>
+  <span id="recordTimer" class="record-timer"></span>
 </div>
+<audio id="recordPlayback" controls style="display:none;width:100%;margin-top:10px;"></audio>
+
+<label class="field-label">الأوسمة</label>
+<div class="tags-wrap" id="detailTagsWrap"></div>
+
+<div class="detail-buttons">
+  <button id="btnSaveDetail" class="btn-primary btn-xl">حفظ</button>
+  <button id="btnCallFromDetail" class="btn-call btn-xl">📞 اتصال</button>
+</div>
+```
+
+  </div>
+</section>
+
+<!-- ===================== شاشة الاتصال (وضع القيادة) ===================== -->
+
+<section id="screen-call" class="screen">
+  <div class="call-wrap">
+    <div class="call-avatar">👤</div>
+    <h2 id="callName">اسم العميل</h2>
+    <p id="callPhone" class="call-phone">0500000000</p>
+    <p id="callStatus" class="call-status">جاهز للاتصال</p>
+
+```
+<a id="btnDial" class="call-dial-btn" href="tel:">
+  <span>📞</span>
+  <span>اتصال</span>
+</a>
+
+<button id="btnAnswered" class="answered-btn" style="display:none;">
+  هل رد العميل؟
+</button>
+
+<div id="postCallActions" class="post-call-actions" style="display:none;">
+  <button id="btnYesAnswered" class="btn-yes-no btn-yes">نعم، رد ✅</button>
+  <button id="btnNoAnswered" class="btn-yes-no btn-no">لم يرد ❌</button>
+</div>
+
+<button id="btnEndCallScreen" class="btn-secondary btn-xl close-call-btn">إغلاق</button>
+```
+
+  </div>
+</section>
+
+<!-- ===================== شاشة بعد الرد: ادخال سريع ===================== -->
+
+<section id="screen-after-answer" class="screen">
+  <header class="top-bar">
+    <span></span>
+    <h2>بيانات المكالمة</h2>
+    <span></span>
+  </header>
+  <div class="detail-wrap">
+    <h3 id="afterAnswerName">—</h3>
+
+```
+<label class="field-label">تعليق سريع</label>
+<textarea id="afterAnswerComment" class="big-textarea" placeholder="ملخص الرد..."></textarea>
+
+<div class="record-row">
+  <button id="btnRecord2" class="record-btn">
+    <span id="recordIcon2">🎙</span>
+    <span id="recordLabel2">تسجيل ملخص صوتي</span>
+  </button>
+  <span id="recordTimer2" class="record-timer"></span>
+</div>
+<audio id="recordPlayback2" controls style="display:none;width:100%;margin-top:10px;"></audio>
+
+<label class="field-label">الأوسمة</label>
+<div class="tags-wrap" id="afterAnswerTagsWrap"></div>
+
+<button id="btnSaveAfterAnswer" class="btn-primary btn-xl">حفظ وإنهاء</button>
+```
+
+  </div>
+</section>
+
+<!-- ===================== شاشة الإعدادات (إدارة الأوسمة) ===================== -->
+
+<section id="screen-settings" class="screen">
+  <header class="top-bar">
+    <button id="btnCloseSettings" class="icon-btn">✕</button>
+    <h2>الإعدادات</h2>
+    <span></span>
+  </header>
+
+  <div class="settings-wrap">
+    <h3>الأوسمة (التصنيفات)</h3>
+    <div class="tag-add-row">
+      <input id="newTagInput" class="big-input" type="text" placeholder="اسم الوسم الجديد">
+      <button id="btnAddTag" class="btn-primary">إضافة</button>
+    </div>
+    <div class="settings-tags-list" id="settingsTagsList"></div>
+
+```
+<hr class="divider">
+
+<button id="btnGoReports" class="btn-secondary btn-xl">📊 عرض التقارير</button>
+```
+
+  </div>
+</section>
+
+<!-- ===================== شاشة التقارير ===================== -->
+
+<section id="screen-reports" class="screen">
+  <header class="top-bar">
+    <button id="btnCloseReports" class="icon-btn">✕</button>
+    <h2>التقارير والمقارنة</h2>
+    <span></span>
+  </header>
+
+  <div class="reports-wrap">
+    <h3>توزيع الأوسمة (الفرع الحالي)</h3>
+    <div id="reportTagsCurrentBranch" class="report-bars"></div>
+
+```
+<hr class="divider">
+
+<h3>مقارنة الفروع حسب الأوسمة</h3>
+<div id="reportBranchComparison" class="report-table-wrap"></div>
+```
+
+  </div>
+</section>
+
+<!-- شريط تنبيه عام -->
+
+<div id="toast" class="toast"></div>
 
 <script type="module" src="app.js"></script>
+
 </body>
 </html>
