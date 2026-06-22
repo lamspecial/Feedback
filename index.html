@@ -18,200 +18,213 @@
   </header>
   <div class="branch-list" id="branchList"></div>
   <div class="branch-actions">
-    <button id="btnNewBranch" class="btn-secondary btn-xl">
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> فرع جديد
-    </button>
+    <button id="btnNewBranch" class="btn-secondary btn-xl">إنشاء فرع جديد</button>
   </div>
 </section>
 
 <section id="screen-customers" class="screen">
   <header class="top-bar">
-    <button id="btnBackToBranches" class="icon-btn">
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </button>
-    <h2 id="currentBranchName">اسم الفرع</h2>
-    <button id="btnSettings" class="icon-btn" title="الإعدادات">
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <button id="btnBackToBranches" class="icon-btn">‹ العودة</button>
+    <h2 id="currentBranchName">الفرع الحالي</h2>
+    <button id="btnSettings" class="icon-btn">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
   </header>
-  <div class="quick-stats" id="quickStats">
-    <div class="stat-pill"><span id="statTotal">0</span> إجمالي</div>
-    <div class="stat-pill"><span id="statCalled">0</span> تم الاتصال</div>
-    <div class="stat-pill"><span id="statAnswered">0</span> رد</div>
+
+  <div class="stats-row">
+    <div class="stat-box"><p class="stat-val" id="statTotal">0</p><p class="stat-lbl">إجمالي العملاء</p></div>
+    <div class="stat-box"><p class="stat-val" id="statCalled">0</p><p class="stat-lbl">تم الاتصال</p></div>
+    <div class="stat-box"><p class="stat-val" id="statAnswered">0</p><p class="stat-lbl">ردوا</p></div>
   </div>
+
   <div class="customers-list" id="customersList"></div>
-  <button id="btnAddCustomerFab" class="fab">
-    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-  </button>
+  <button id="btnAddCustomerFab" class="fab-btn">+</button>
 </section>
 
 <section id="screen-add-customer" class="screen">
   <header class="top-bar">
-    <button id="btnCloseAddCustomer" class="icon-btn">
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
-    <h2>إضافة عميل</h2>
-    <span style="width: 46px;"></span>
+    <button id="btnCloseAddCustomer" class="icon-btn">إلغاء</button>
+    <h2>إضافة عميل جديد</h2>
+    <span style="width: 40px;"></span>
   </header>
-  <div class="dialpad-wrap">
-    <input id="customerName" class="big-input" type="text" placeholder="اسم العميل" autocomplete="off">
-    <input id="customerPhone" class="big-input phone-display" type="text" placeholder="رقم الجوال" readonly>
-    <div class="dialpad">
-      <button class="dial-key" data-key="1">1</button>
-      <button class="dial-key" data-key="2">2</button>
-      <button class="dial-key" data-key="3">3</button>
-      <button class="dial-key" data-key="4">4</button>
-      <button class="dial-key" data-key="5">5</button>
-      <button class="dial-key" data-key="6">6</button>
-      <button class="dial-key" data-key="7">7</button>
-      <button class="dial-key" data-key="8">8</button>
-      <button class="dial-key" data-key="9">9</button>
-      <button class="dial-key dial-empty"></button>
-      <button class="dial-key" data-key="0">0</button>
-      <button class="dial-key dial-backspace" id="btnBackspace">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:32px;height:32px;"><path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2zM18 9l-6 6M12 9l6 6"/></svg>
+  <div class="form-body">
+    <div class="input-group">
+      <label>اسم العميل</label>
+      <input type="text" id="customerName" placeholder="أدخل اسم العميل الميداني">
+    </div>
+    <div class="input-group">
+      <label>رقم الجوال</label>
+      <input type="text" id="customerPhone" placeholder="اختر الرقم من اللوحة أدناه" readonly>
+    </div>
+
+    <div class="dial-pad">
+      <button class="dial-key" data-key="1"><svg viewBox="0 0 24 24"><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="currentColor">1</text></svg></button>
+      <button class="dial-key" data-key="2"><svg viewBox="0 0 24 24"><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="currentColor">2</text></svg></button>
+      <button class="dial-key" data-key="3"><svg viewBox="0 0 24 24"><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="currentColor">3</text></svg></button>
+      <button class="dial-key" data-key="4"><svg viewBox="0 0 24 24"><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="currentColor">4</text></svg></button>
+      <button class="dial-key" data-key="5"><svg viewBox="0 0 24 24"><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="currentColor">5</text></svg></button>
+      <button class="dial-key" data-key="6"><svg viewBox="0 0 24 24"><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="currentColor">6</text></svg></button>
+      <button class="dial-key" data-key="7"><svg viewBox="0 0 24 24"><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="currentColor">7</text></svg></button>
+      <button class="dial-key" data-key="8"><svg viewBox="0 0 24 24"><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="currentColor">8</text></svg></button>
+      <button class="dial-key" data-key="9"><svg viewBox="0 0 24 24"><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="currentColor">9</text></svg></button>
+      <div class="dial-empty"></div>
+      <button class="dial-key" data-key="0"><svg viewBox="0 0 24 24"><text x="50%" y="60%" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="currentColor">0</text></svg></button>
+      <button id="btnBackspace" class="dial-key backspace-key">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><path d="M18 9l-6 6M12 9l6 6"/></svg>
       </button>
     </div>
-    <button id="btnSaveCustomer" class="btn-primary btn-xl">حفظ والتالي</button>
-    <p id="addCustomerHint" class="hint-text">يتم الحفظ والعودة تلقائيًا لإدخال عميل جديد</p>
+
+    <button id="btnSaveCustomer" class="btn-primary btn-xl" style="margin-top: 15px;">حفظ معلومات العميل</button>
   </div>
 </section>
 
 <section id="screen-customer-detail" class="screen">
   <header class="top-bar">
-    <button id="btnCloseDetail" class="icon-btn">
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
+    <button id="btnCloseDetail" class="icon-btn">إغلاق</button>
     <h2>تفاصيل العميل</h2>
-    <button id="btnDeleteCustomer" class="icon-btn" title="حذف">
-      <svg class="icon-svg text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-    </button>
+    <button id="btnDeleteCustomer" class="icon-btn text-danger">حذف</button>
   </header>
-  <div class="detail-wrap">
-    <h3 id="detailName">—</h3>
-    <p id="detailPhone" class="phone-big">—</p>
-    <label class="field-label">تعليق العميل</label>
-    <textarea id="detailComment" class="big-textarea" placeholder="اكتب ملاحظة عن العميل..."></textarea>
-    <div class="record-row">
-      <button id="btnRecord" class="record-btn">
-        <span id="recordIcon"></span>
-        <span id="recordLabel">تسجيل ملخص</span>
+  <div class="form-body">
+    <div class="detail-card-header">
+      <h3 id="detailName">اسم العميل</h3>
+      <p id="detailPhone">05xxxxxxx</p>
+    </div>
+
+    <div class="input-group">
+      <label>النقاط الإيجابية التي ذكرها العميل</label>
+      <textarea id="detailPositiveComment" class="positive-comment-box" rows="3" placeholder="اكتب الملاحظات والنقاط الإيجابية هنا..."></textarea>
+    </div>
+
+    <div class="input-group">
+      <label>نقاط التحسين التي أشار إليها العميل</label>
+      <textarea id="detailImprovementComment" class="improvement-comment-box" rows="3" placeholder="اكتب المقترحات ونقاط التطوير المذكورة..."></textarea>
+    </div>
+
+    <div class="input-group">
+      <label>أوسمة وتصنيفات العميل</label>
+      <div class="tags-wrap" id="detailTagsWrap"></div>
+    </div>
+
+    <div class="audio-section">
+      <button id="btnRecord" class="btn-record">
+        <span id="recordIcon"></span> <span id="recordLabel">تسجيل ملخص الملاحظات</span>
       </button>
       <span id="recordTimer" class="record-timer"></span>
+      <audio id="recordPlayback" controls style="display:none; width:100%; margin-top:10px;"></audio>
     </div>
-    <audio id="recordPlayback" controls style="display:none;width:100%;margin-top:10px;"></audio>
-    <label class="field-label">الأوسمة</label>
-    <div class="tags-wrap" id="detailTagsWrap"></div>
-    <div class="detail-buttons">
-      <button id="btnSaveDetail" class="btn-primary btn-xl">حفظ</button>
-      <button id="btnCallFromDetail" class="btn-call btn-xl">
-        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg> اتصال
-      </button>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:20px;">
+      <button id="btnCallFromDetail" class="btn-secondary">إجراء اتصال الآن</button>
+      <button id="btnSaveDetail" class="btn-primary">حفظ التغييرات</button>
     </div>
   </div>
 </section>
 
 <section id="screen-call" class="screen">
-  <div class="call-wrap">
+  <div class="call-screen-content">
     <div class="call-avatar">
-      <svg class="icon-svg" style="width: 60px; height: 60px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     </div>
-    <h2 id="callName">اسم العميل</h2>
-    <p id="callPhone" class="call-phone">0500000000</p>
-    <p id="callStatus" class="call-status">جاهز للاتصال</p>
+    <h2 id="callName" class="call-screen-name">اسم العميل</h2>
+    <p id="callPhone" class="call-screen-phone">05xxxxxxx</p>
+    <p id="callStatus" class="call-screen-status">جاهز للاتصال</p>
+
+    <div class="call-controls">
+      <a id="btnDial" href="#" class="call-btn btn-start-dial">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+      </a>
+      <button id="btnAnswered" class="call-btn btn-end-call" style="display:none;">إنهاء الاتصال بالنظام</button>
+    </div>
+
+    <div id="postCallActions" class="post-call-box" style="display:none;">
+      <p>هل رد العميل على الاتصال؟</p>
+      <div style="display:flex; gap:15px; justify-content:center; width:100%;">
+        <button id="btnYesAnswered" class="btn-primary" style="background:var(--success); flex:1;">نعم، أجاب</button>
+        <button id="btnNoAnswered" class="btn-secondary" style="color:var(--danger); border-color:var(--danger); flex:1;">لا، لم يرد</button>
+      </div>
+    </div>
     
-    <a id="btnDial" class="call-dial-btn" href="tel:">
-      <svg class="icon-svg" style="width: 46px; height: 46px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
-      <span>اتصال</span>
-    </a>
-
-    <button id="btnAnswered" class="answered-btn" style="display:none;">هل رد العميل؟</button>
-
-    <div id="postCallActions" class="post-call-actions" style="display:none;">
-      <button id="btnYesAnswered" class="btn-yes-no btn-yes">
-        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> نعم، رد
-      </button>
-      <button id="btnNoAnswered" class="btn-yes-no btn-no">
-        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg> لم يرد
-      </button>
-    </div>
-
-    <button id="btnEndCallScreen" class="btn-secondary btn-xl close-call-btn">إغلاق</button>
+    <button id="btnEndCallScreen" class="btn-text" style="margin-top: 30px;">إلغاء والعودة للقائمة</button>
   </div>
 </section>
 
 <section id="screen-after-answer" class="screen">
   <header class="top-bar">
-    <span style="width: 46px;"></span>
-    <h2>بيانات المكالمة</h2>
-    <span style="width: 46px;"></span>
+    <h2>نتائج المكالمة الناجحة</h2>
   </header>
-  <div class="detail-wrap">
-    <h3 id="afterAnswerName">—</h3>
-    <label class="field-label">تعليق سريع</label>
-    <textarea id="afterAnswerComment" class="big-textarea" placeholder="ملخص الرد..."></textarea>
-    <div class="record-row">
-      <button id="btnRecord2" class="record-btn">
-        <span id="recordIcon2"></span>
-        <span id="recordLabel2">تسجيل ملخص</span>
+  <div class="form-body">
+    <div class="detail-card-header">
+      <h3 id="afterAnswerName">اسم العميل</h3>
+      <p style="color: var(--success); font-weight: bold; font-size:13px; margin-top:5px;">✓ تم تطبيق وسم "تم" تلقائياً</p>
+    </div>
+
+    <div class="input-group">
+      <label>النقاط الإيجابية التي ذكرها العميل</label>
+      <textarea id="afterAnswerPositiveComment" class="positive-comment-box" rows="3" placeholder="دون النقاط الإيجابية التي أشاد بها العميل..."></textarea>
+    </div>
+
+    <div class="input-group">
+      <label>نقاط التحسين التي أشار إليها العميل</label>
+      <textarea id="afterAnswerImprovementComment" class="improvement-comment-box" rows="3" placeholder="دون مواضع الضعف والمقترحات للتحسين..."></textarea>
+    </div>
+
+    <div class="input-group">
+      <label>تعديل الأوسمة الإضافية</label>
+      <div class="tags-wrap" id="afterAnswerTagsWrap"></div>
+    </div>
+
+    <div class="audio-section">
+      <button id="btnRecord2" class="btn-record">
+        <span id="recordIcon2"></span> <span id="recordLabel2">تسجيل ملخص صوتي</span>
       </button>
       <span id="recordTimer2" class="record-timer"></span>
+      <audio id="recordPlayback2" controls style="display:none; width:100%; margin-top:10px;"></audio>
     </div>
-    <audio id="recordPlayback2" controls style="display:none;width:100%;margin-top:10px;"></audio>
-    <label class="field-label">الأوسمة</label>
-    <div class="tags-wrap" id="afterAnswerTagsWrap"></div>
-    <button id="btnSaveAfterAnswer" class="btn-primary btn-xl">حفظ وإنهاء</button>
+
+    <button id="btnSaveAfterAnswer" class="btn-primary btn-xl" style="margin-top:20px;">حفظ وإنهاء المهمة</button>
   </div>
 </section>
 
 <section id="screen-settings" class="screen">
   <header class="top-bar">
-    <button id="btnCloseSettings" class="icon-btn">
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
-    <h2>الإعدادات</h2>
-    <span style="width: 46px;"></span>
+    <button id="btnCloseSettings" class="icon-btn">‹ إغلاق</button>
+    <h2>الإعدادات العامة</h2>
+    <button id="btnThemeToggleSettings" class="icon-btn">مظهر</button>
   </header>
-  <div class="settings-wrap">
-    <h3>المظهر</h3>
-    <button id="btnThemeToggleSettings" class="btn-secondary btn-xl">تبديل الوضع الداكن/الفاتح</button>
-    <hr class="divider">
-    <h3>الأوسمة (التصنيفات)</h3>
-    <div class="tag-add-row">
-      <input id="newTagInput" class="big-input" type="text" placeholder="اسم الوسم الجديد">
-      <button id="btnAddTag" class="btn-primary">إضافة</button>
+  <div class="form-body">
+    <div class="input-group">
+      <label>إضافة وسم عام جديد للنظام</label>
+      <div style="display:flex; gap:10px;">
+        <input type="text" id="newTagInput" placeholder="اسم الوسم، مثال: مهتم" style="flex:1;">
+        <button id="btnAddTag" class="btn-primary">إضافة</button>
+      </div>
     </div>
     <div class="settings-tags-list" id="settingsTagsList"></div>
     <hr class="divider">
     <button id="btnGoReports" class="btn-secondary btn-xl">
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-4"/></svg> عرض التقارير
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-4"/></svg> عرض التقارير والمقارنات
     </button>
     <hr class="divider">
-    <button id="btnLogout" class="btn-secondary btn-xl" style="color: var(--danger); border-color: var(--danger);">
-      <svg class="icon-svg text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg> تسجيل الخروج
-    </button>
+    <button id="btnLogout" class="btn-secondary btn-xl" style="color: var(--danger); border-color: var(--danger);"></button>
   </div>
 </section>
 
 <section id="screen-reports" class="screen">
   <header class="top-bar">
-    <button id="btnCloseReports" class="icon-btn">
-      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
-    <h2>التقارير والمقارنة</h2>
-    <span style="width: 46px;"></span>
+    <button id="btnCloseReports" class="icon-btn">‹ تراجع</button>
+    <h2>التقارير والإحصائيات العامة</h2>
+    <span style="width:40px;"></span>
   </header>
-  <div class="reports-wrap">
-    <h3>توزيع الأوسمة (الفرع الحالي)</h3>
-    <div id="reportTagsCurrentBranch" class="report-bars"></div>
-    <hr class="divider">
-    <h3>مقارنة الفروع حسب الأوسمة</h3>
-    <div id="reportBranchComparison" class="report-table-wrap"></div>
+  <div class="form-body">
+    <h3>تحليل أوسمة الفرع الحالي</h3>
+    <div class="report-box" id="reportTagsCurrentBranch"></div>
+
+    <h3 style="margin-top:30px;">مقارنة الأوسمة والإنتاجية بين جميع الفروع</h3>
+    <div class="report-table-wrap" id="reportBranchComparison"></div>
   </div>
 </section>
 
 <div id="toast" class="toast"></div>
 
-<script type="module" src="app.js"></script>
 </body>
 </html>
