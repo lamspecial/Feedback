@@ -28,19 +28,213 @@ const ICONS = {
   trash: `<svg class="icon-svg text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`
 };
 
+// قاموس الترجمة الكامل لتعريب وتغريب النظام بالكامل دون اختزال
+const LANG_DICT = {
+  en: {
+    selectBranchHeader: "Select Field Branch",
+    createNewBranchBtn: "Create New Branch",
+    backBtn: "‹ Back",
+    statTotalLbl: "Total Customers",
+    statCalledLbl: "Called",
+    statAnsweredLbl: "Answered",
+    cancelBtn: "Cancel",
+    addNewCustomerHeader: "Add New Customer",
+    customerNameLabel: "Customer Name",
+    customerPhoneLabel: "Phone Number",
+    saveCustomerBtn: "Save Customer Info",
+    closeBtn: "Close",
+    customerDetailsHeader: "Customer Details",
+    deleteBtn: "Delete",
+    positiveFeedbackLabel: "Positive points mentioned by customer",
+    improvementFeedbackLabel: "Improvement points indicated by customer",
+    tagsLabel: "Customer Tags & Labels",
+    recordAudioSummaryLabel: "Record Audio Summary",
+    callNowBtn: "Call Now",
+    saveChangesBtn: "Save Changes",
+    endCallSysBtn: "End Call in System",
+    customerAnsweredQuestion: "Did the customer answer the call?",
+    yesAnsweredBtn: "Yes, Answered",
+    noAnsweredBtn: "No, Didn't Answer",
+    cancelReturnBtn: "Cancel & Return",
+    successfulCallHeader: "Successful Call Summary",
+    tagAutoAppliedText: "✓ 'Done' tag automatically applied",
+    adjustTagsLabel: "Modify Additional Tags",
+    saveFinishBtn: "Save & Finish Task",
+    reportsAnalyticsHeader: "Reports & Analytics",
+    tagDistributionTitle: "Current Branch Tag Metrics",
+    branchComparisonTitle: "Cross-Branch Comparative Grid",
+    settingsHeader: "General Settings",
+    languageSelectLabel: "System Language",
+    drivingModeLabel: "Enable Driving Mode (Light / High Contrast)",
+    manageCurrentBranchTitle: "Current Branch Actions",
+    renameBranchBtn: "Rename Branch",
+    deleteBranchBtn: "Delete Branch",
+    addSystemTagLabel: "Add System Global Tag",
+    addBtn: "Add",
+    navBranches: "Branches",
+    navCustomers: "Customers",
+    navAnalytics: "Analytics",
+    navSettings: "Settings",
+    
+    // نصوص ديناميكية داخل جافاسكريبت
+    noBranches: "No branches listed yet.",
+    openRecords: "Open Records ›",
+    promptNewBranch: "Enter new branch name:",
+    toastBranchSuccess: "Branch created successfully",
+    toastBranchFailed: "Failed to create branch",
+    toastLoadBranchErr: "Unable to load field branches",
+    toastSyncCustErr: "Unable to sync customer data",
+    noCustomers: "No customers added in this branch.",
+    statusAnswered: "Answered & Completed",
+    statusNoAnswer: "No answer from customer",
+    statusNew: "New / Recently added",
+    detailsRecordsBtn: "Details & Records",
+    callBtnText: "Call",
+    toastPhoneRequired: "Please enter phone number via pad first",
+    toastCustSaved: "Customer record saved successfully",
+    toastFirebaseErr: "Firebase operation failed",
+    noCustomTags: "No custom tags available.",
+    confirmDeleteTag: "Are you sure you want to delete tag \"{name}\"?",
+    toastTagAdded: "Tag added to the system",
+    noActiveTags: "No active tags.",
+    confirmDeleteCust: "Delete this customer permanently from field database?",
+    toastDataUpdated: "Data updated successfully",
+    toastSaveFailed: "Failed to save updates",
+    readyToCall: "Ready for field call",
+    callingState: "Making external call...",
+    stopRecordLabel: "Stop Audio Recording",
+    toastMicError: "Could not access microphone",
+    toastStorageFull: "Alert: Browser storage full! Saved audio temporarily.",
+    analyzingReports: "Extracting reports and analyzing double entries...",
+    noStatsAvailable: "No data available for tag analysis.",
+    insufficientData: "Insufficient data for comparison grid.",
+    fieldBranchColHeader: "Field Branch",
+    loadReportsErr: "Could not load data tables",
+    branchSelectRequired: "Please select a field branch first!",
+    promptRenameBranch: "Enter new name for this branch:",
+    toastBranchRenamed: "Branch renamed successfully",
+    confirmDeleteBranch: "Warning! Deleting this branch will erase all of its internal customer records permanently. Proceed?"
+  },
+  ar: {
+    selectBranchHeader: "اختر الفرع الميداني",
+    createNewBranchBtn: "إنشاء فرع جديد",
+    backBtn: "‹ العودة",
+    statTotalLbl: "إجمالي العملاء",
+    statCalledLbl: "تم الاتصال",
+    statAnsweredLbl: "ردوا",
+    cancelBtn: "إلغاء",
+    addNewCustomerHeader: "إضافة عميل جديد",
+    customerNameLabel: "اسم العميل",
+    customerPhoneLabel: "رقم الجوال",
+    saveCustomerBtn: "حفظ معلومات العميل",
+    closeBtn: "إغلاق",
+    customerDetailsHeader: "تفاصيل العميل",
+    deleteBtn: "حذف",
+    positiveFeedbackLabel: "النقاط الإيجابية التي ذكرها العميل",
+    improvementFeedbackLabel: "نقاط التحسين التي أشار إليها العميل",
+    tagsLabel: "أوسمة وتصنيفات العميل",
+    recordAudioSummaryLabel: "تسجيل ملخص الملاحظات",
+    callNowBtn: "إجراء اتصال الآن",
+    saveChangesBtn: "حفظ التغييرات",
+    endCallSysBtn: "إنهاء الاتصال بالنظام",
+    customerAnsweredQuestion: "هل رد العميل على الاتصال؟",
+    yesAnsweredBtn: "نعم، أجاب",
+    noAnsweredBtn: "لا، لم يرد",
+    cancelReturnBtn: "إلغاء والعودة للقائمة",
+    successfulCallHeader: "نتائج المكالمة الناجحة",
+    tagAutoAppliedText: "✓ تم تطبيق وسم 'تم' تلقائياً",
+    adjustTagsLabel: "تعديل الأوسمة الإضافية",
+    saveFinishBtn: "حفظ وإنهاء المهمة",
+    reportsAnalyticsHeader: "التقارير والتحليلات",
+    tagDistributionTitle: "إحصائيات الأوسمة للفرع الحالي",
+    branchComparisonTitle: "المقارنة الشاملة بين الفروع",
+    settingsHeader: "الإعدادات العامة",
+    languageSelectLabel: "لغة النظام",
+    drivingModeLabel: "تفعيل وضع القيادة (مظهر فاتح / تباين عالي)",
+    manageCurrentBranchTitle: "إجراءات الفرع الحالي",
+    renameBranchBtn: "تعديل اسم الفرع",
+    deleteBranchBtn: "حذف الفرع نهائياً",
+    addSystemTagLabel: "إضافة وسم عام جديد للنظام",
+    addBtn: "إضافة",
+    navBranches: "الفروع",
+    navCustomers: "العملاء",
+    navAnalytics: "التحليلات",
+    navSettings: "الإعدادات",
+    
+    noBranches: "لا توجد فروع مدرجة بعد.",
+    openRecords: "فتح السجلات ›",
+    promptNewBranch: "أدخل اسم الفرع الجديد:",
+    toastBranchSuccess: "تم إنشاء الفرع بنجاح",
+    toastBranchFailed: "فشل إنشاء الفرع",
+    toastLoadBranchErr: "تعذر تحميل الفروع الميدانية",
+    toastSyncCustErr: "تعذر مزامنة بيانات العملاء",
+    noCustomers: "لا يوجد عملاء مضافين في هذا الفرع.",
+    statusAnswered: "تم الرد والإنجاز",
+    statusNoAnswer: "لم يرد على الاتصال",
+    statusNew: "عميل جديد / مضاف حديثاً",
+    detailsRecordsBtn: "تفاصيل وسجلات",
+    callBtnText: "اتصال",
+    toastPhoneRequired: "الرجاء إدخال رقم الجوال أولاً عبر اللوحة",
+    toastCustSaved: "تم حفظ سجل العميل بنجاح",
+    toastFirebaseErr: "فشل حفظ العميل في فايربيس",
+    noCustomTags: "لا توجد أوسمة عامة مخصصة.",
+    confirmDeleteTag: "هل أنت متأكد من حذف وسم \"{name}\"؟",
+    toastTagAdded: "تم إضافة الوسم للنظام",
+    noActiveTags: "لا توجد أوسمة مفعلة.",
+    confirmDeleteCust: "هل تود حذف سجل العميل هذا نهائياً من قاعدة البيانات الميدانية؟",
+    toastDataUpdated: "تم تحديث البيانات",
+    toastSaveFailed: "فشل حفظ التعديلات",
+    readyToCall: "جاهز للاتصال الميداني",
+    callingState: "جارٍ إجراء الاتصال الخارجي...",
+    stopRecordLabel: "إيقاف التسجيل الصوتي",
+    toastMicError: "تعذر صلاحية الوصول للميكروفون الخاص بك",
+    toastStorageFull: "تنبيه: مساحة تخزين المتصفح ممتلئة، تم عرض الصوت حالياً دون حفظ دائم",
+    analyzingReports: "جارٍ استخراج التقارير وتحليل الخانات المزدوجة...",
+    noStatsAvailable: "لا توجد إحصائيات متوفرة لفرز الأوسمة.",
+    insufficientData: "لا توجد داتا فروع كافية للمقارنة بين الفروع.",
+    fieldBranchColHeader: "الفرع الميداني",
+    loadReportsErr: "تعذر تحميل جداول التقارير",
+    branchSelectRequired: "الرجاء اختيار فرع ميداني أولاً!",
+    promptRenameBranch: "أدخل الاسم الجديد للفرع:",
+    toastBranchRenamed: "تم تعديل اسم الفرع بنجاح",
+    confirmDeleteBranch: "تحذير! حذف هذا الفرع سيؤدي لحذف كافة سجلات العملاء التابعين له نهائياً. هل أنت متأكد؟"
+  }
+};
+
 // كائن الحالة العام للتطبيق
 const state = {
-  branches: [], currentBranchId: null, customers: [], tags: [], selectedCustomerId: null,
+  branches: [], currentBranchId: null, currentBranchName: "", customers: [], tags: [], selectedCustomerId: null,
   detailSelectedTags: new Set(), afterAnswerSelectedTags: new Set(),
   mediaRecorder: null, audioChunks: [], recordTarget: null, recordTimerInterval: null,
-  recordSeconds: 0, pendingAudioBlob: null, unsubCustomers: null, unsubBranches: null, unsubTags: null
+  recordSeconds: 0, pendingAudioBlob: null, unsubCustomers: null, unsubBranches: null, unsubTags: null,
+  lang: localStorage.getItem("app-lang") || "en",
+  drivingMode: localStorage.getItem("app-driving-mode") === "true"
 };
 
 function $(id) { return document.getElementById(id); }
 
+// معالج الشاشات مع دمج وإدارة شريط التنقل السفلي الموحد
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   $(id).classList.add("active");
+  
+  // تحديث إضاءة شريط التنقل بناءً على الشاشة المفتوحة
+  const mainTabs = ["screen-branch", "screen-customers", "screen-reports", "screen-settings"];
+  if (mainTabs.includes(id)) {
+    $("mainBottomNav").style.display = "flex";
+    document.querySelectorAll(".nav-item").forEach(item => {
+      if (item.dataset.target === id) item.classList.add("active");
+      else item.classList.remove("active");
+    });
+  } else {
+    // إخفاء شريط التنقل في الشاشات العريضة التفاعلية (مثل وضع الاتصال أو تفاصيل العميل لمنع الخروج الخاطئ)
+    $("mainBottomNav").style.display = "none";
+  }
+  
+  // شحن التقارير تلقائياً عند الدخول لشاشتها
+  if (id === "screen-reports") {
+    renderReports();
+  }
 }
 
 function showToast(msg) {
@@ -52,6 +246,7 @@ function showToast(msg) {
 
 function normalizePhone(p) { return (p || "").replace(/[^\d+]/g, ""); }
 
+// تطبيق المظهر وإدارته
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("app-theme", theme);
@@ -71,9 +266,65 @@ function toggleTheme() {
 $("btnThemeToggle")?.addEventListener("click", toggleTheme);
 $("btnThemeToggleSettings")?.addEventListener("click", toggleTheme);
 
-// تهيئة الدخول المباشر المفتوح
-$("btnLogout")?.addEventListener("click", () => { showScreen("screen-branch"); });
+// معالجة اللغات الميدانية والترجمات اللحظية للواجهات
+function applyLanguage(lang) {
+  state.lang = lang;
+  localStorage.setItem("app-lang", lang);
+  document.documentElement.setAttribute("lang", lang);
+  document.documentElement.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
+  $("selectLanguage").value = lang;
 
+  // ترجمة جميع العناصر الحاملة لخصائص الترجمة الموحدة
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    if (LANG_DICT[lang] && LANG_DICT[lang][key]) {
+      el.textContent = LANG_DICT[lang][key];
+    }
+  });
+
+  // إعادة رندرة المكونات لتطبيق نصوص اللغة الجديدة
+  renderBranches();
+  renderCustomers();
+  if ($("screen-reports").classList.contains("active")) renderReports();
+  renderSettingsTags();
+}
+
+$("selectLanguage").addEventListener("change", (e) => {
+  applyLanguage(e.target.value);
+});
+
+// معالجة وضع القيادة العريض للمكالمات السريعة
+function applyDrivingMode(active) {
+  state.drivingMode = active;
+  localStorage.setItem("app-driving-mode", active);
+  $("chkDrivingMode").checked = active;
+  if (active) {
+    document.body.classList.add("driving-mode");
+  } else {
+    document.body.classList.remove("driving-mode");
+  }
+}
+
+$("chkDrivingMode").addEventListener("change", (e) => {
+  applyDrivingMode(e.target.checked);
+});
+
+// ربط أحداث شريط التنقل السفلي الموحد
+document.querySelectorAll(".bottom-nav .nav-item").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const target = btn.dataset.target;
+    if ((target === "screen-customers" || target === "screen-reports") && !state.currentBranchId) {
+      showToast(LANG_DICT[state.lang].branchSelectRequired);
+      return;
+    }
+    showScreen(target);
+  });
+});
+
+// تشغيل النظام الميداني
+initTheme();
+applyLanguage(state.lang);
+applyDrivingMode(state.drivingMode);
 showScreen("screen-branch");
 listenBranches();
 listenTags();
@@ -83,33 +334,40 @@ function listenBranches() {
     state.branches = [];
     snap.forEach(d => state.branches.push({ id: d.id, ...d.data() }));
     renderBranches();
-  }, err => { showToast("تعذر تحميل الفروع الميدانية"); });
+  }, err => { showToast(LANG_DICT[state.lang].toastLoadBranchErr); });
 }
 
 function renderBranches() {
   const list = $("branchList");
-  list.innerHTML = state.branches.length ? "" : `<p style="color:var(--text-dim);text-align:center;padding:30px;">لا توجد فروع مدرجة بعد.</p>`;
-  state.branches.sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar")).forEach(branch => {
+  list.innerHTML = state.branches.length ? "" : `<p style="color:var(--text-dim);text-align:center;padding:30px;">${LANG_DICT[state.lang].noBranches}</p>`;
+  state.branches.sort((a, b) => (a.name || "").localeCompare(b.name || "", state.lang)).forEach(branch => {
     const card = document.createElement("div");
     card.className = "branch-card";
-    card.innerHTML = `<span>${escapeHtml(branch.name)}</span><span class="branch-count">فتح السجلات ›</span>`;
+    card.innerHTML = `<span>${escapeHtml(branch.name)}</span><span class="branch-count">${LANG_DICT[state.lang].openRecords}</span>`;
     card.addEventListener("click", () => openBranch(branch.id, branch.name));
     list.appendChild(card);
   });
 }
 
 $("btnNewBranch").addEventListener("click", async () => {
-  const name = prompt("أدخل اسم الفرع الجديد:");
+  const name = prompt(LANG_DICT[state.lang].promptNewBranch);
   if (!name || !name.trim()) return;
   try {
     await addDoc(collection(db, "branches"), { name: name.trim(), createdAt: serverTimestamp() });
-    showToast("تم إنشاء الفرع بنجاح");
-  } catch (err) { showToast("فشل إنشاء الفرع"); }
+    showToast(LANG_DICT[state.lang].toastBranchSuccess);
+  } catch (err) { showToast(LANG_DICT[state.lang].toastBranchFailed); }
 });
 
 function openBranch(id, name) {
   state.currentBranchId = id;
+  state.currentBranchName = name;
   $("currentBranchName").textContent = name;
+  
+  // إظهار قسم تعديل وحذف الفرع داخل الإعدادات لتحديد الإجراء عليه
+  $("manageBranchStateName").textContent = name;
+  $("branchManagementSection").style.display = "block";
+  $("branchManageDivider").style.display = "block";
+
   showScreen("screen-customers");
   listenCustomers();
 }
@@ -117,7 +375,48 @@ function openBranch(id, name) {
 $("btnBackToBranches").addEventListener("click", () => {
   if (state.unsubCustomers) state.unsubCustomers();
   state.currentBranchId = null;
+  state.currentBranchName = "";
+  
+  // إخفاء خانة التحكم في الفرع داخل الإعدادات لعدم تحديد أي فرع حالياً
+  $("branchManagementSection").style.display = "none";
+  $("branchManageDivider").style.display = "none";
+
   showScreen("screen-branch");
+});
+
+// تعديل وحذف اسم الفرع الحالي من الإعدادات
+$("btnRenameBranch").addEventListener("click", async () => {
+  if (!state.currentBranchId) return;
+  const newName = prompt(LANG_DICT[state.lang].promptRenameBranch, state.currentBranchName);
+  if (!newName || !newName.trim()) return;
+  try {
+    await updateDoc(doc(db, "branches", state.currentBranchId), { name: newName.trim() });
+    state.currentBranchName = newName.trim();
+    $("currentBranchName").textContent = state.currentBranchName;
+    $("manageBranchStateName").textContent = state.currentBranchName;
+    showToast(LANG_DICT[state.lang].toastBranchRenamed);
+  } catch (err) { showToast(LANG_DICT[state.lang].toastSaveFailed); }
+});
+
+// حذف الفرع وكافة محتوياته الميدانية
+$("btnDeleteBranch").addEventListener("click", async () => {
+  if (!state.currentBranchId) return;
+  if (confirm(LANG_DICT[state.lang].confirmDeleteBranch)) {
+    try {
+      const bId = state.currentBranchId;
+      // تنظيف المشتركين أولاً لتفادي بقايا الكاش
+      if (state.unsubCustomers) state.unsubCustomers();
+      
+      await deleteDoc(doc(db, "branches", bId));
+      state.currentBranchId = null;
+      state.currentBranchName = "";
+      $("branchManagementSection").style.display = "none";
+      $("branchManageDivider").style.display = "none";
+      
+      showToast(LANG_DICT[state.lang].toastDataUpdated);
+      showScreen("screen-branch");
+    } catch (err) { showToast(LANG_DICT[state.lang].toastFirebaseErr); }
+  }
 });
 
 function customersCol() { return collection(db, "branches", state.currentBranchId, "customers"); }
@@ -128,28 +427,28 @@ function listenCustomers() {
     state.customers = [];
     snap.forEach(d => state.customers.push({ id: d.id, ...d.data() }));
     renderCustomers();
-  }, err => { showToast("تعذر مزامنة بيانات العملاء"); });
+  }, err => { showToast(LANG_DICT[state.lang].toastSyncCustErr); });
 }
 
-// دالة الفرز المتقدم: المضاف حديثاً -> لم يرد -> المنجز
 function renderCustomers() {
   const list = $("customersList");
+  if (!list) return;
   list.innerHTML = "";
   $("statTotal").textContent = state.customers.length;
   $("statCalled").textContent = state.customers.filter(c => c.called).length;
   $("statAnswered").textContent = state.customers.filter(c => c.answered).length;
 
   if (state.customers.length === 0) {
-    list.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:40px;">لا يوجد عملاء مضافين في هذا الفرع.</p>`;
+    list.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:40px;">${LANG_DICT[state.lang].noCustomers}</p>`;
     return;
   }
 
-  // تطبيق فرز المجموعات الثلاث المتقدم
+  // فرز متقدم: المضاف حديثاً -> لم يرد -> المنجز
   state.customers.sort((a, b) => {
     const getGroupOrder = (c) => {
-      if (c.answered) return 3;               // الفئة الثالثة: الذين تم إنجازهم (في الأسفل)
-      if (c.called && !c.answered) return 2;   // الفئة الثانية: الذين لم يردوا (في الوسط)
-      return 1;                               // الفئة الأولى: المضافون حديثاً / لم يتم الاتصال بهم (في الأعلى)
+      if (c.answered) return 3;
+      if (c.called && !c.answered) return 2;
+      return 1;
     };
 
     const groupA = getGroupOrder(a);
@@ -157,7 +456,6 @@ function renderCustomers() {
 
     if (groupA !== groupB) return groupA - groupB;
 
-    // فرز فرعي داخل نفس الفئة: المضاف حديثاً أولاً بحسب الوقت الميداني
     const timeA = a.createdAt?.seconds || a.createdAt?.toMillis?.() || 0;
     const timeB = b.createdAt?.seconds || b.createdAt?.toMillis?.() || 0;
     return timeB - timeA;
@@ -168,22 +466,25 @@ function renderCustomers() {
     card.className = "customer-card" + (c.answered ? " answered" : (c.called ? " called" : ""));
     const tagsHtml = (c.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
     const statusClass = c.answered ? "answered" : (c.called ? "called" : "not-called");
-    const statusText = c.answered ? "تم الرد والإنجاز" : (c.called ? "لم يرد على الاتصال" : "عميل جديد / مضاف حديثاً");
+    
+    let statusText = LANG_DICT[state.lang].statusNew;
+    if (c.answered) statusText = LANG_DICT[state.lang].statusAnswered;
+    else if (c.called) statusText = LANG_DICT[state.lang].statusNoAnswer;
 
     card.innerHTML = `
       <div class="customer-card-top">
         <div>
-          <p class="customer-name">${escapeHtml(c.name || "بدون اسم")}</p>
+          <p class="customer-name">${escapeHtml(c.name || "N/A")}</p>
           <p class="customer-phone">${escapeHtml(c.phone || "")}</p>
         </div>
         <span class="status-badge ${statusClass}">${statusText}</span>
       </div>
-      ${c.positiveComment ? `<div class="comment-display-positive"><b>الإيجابيات:</b> ${escapeHtml(c.positiveComment)}</div>` : ""}
-      ${c.improvementComment ? `<div class="comment-display-improvement"><b>التحسينات:</b> ${escapeHtml(c.improvementComment)}</div>` : ""}
+      ${c.positiveComment ? `<div class="comment-display-positive"><b>${state.lang === "ar" ? "الإيجابيات:" : "Positives:"}</b> ${escapeHtml(c.positiveComment)}</div>` : ""}
+      ${c.improvementComment ? `<div class="comment-display-improvement"><b>${state.lang === "ar" ? "التحسينات:" : "Improvements:"}</b> ${escapeHtml(c.improvementComment)}</div>` : ""}
       <div class="customer-tags">${tagsHtml}</div>
       <div class="customer-card-actions">
-        <button class="card-action-btn card-action-record" data-id="${c.id}">${ICONS.detail} تفاصيل وسجلات</button>
-        <button class="card-action-btn card-action-call" data-id="${c.id}">${ICONS.call} اتصال</button>
+        <button class="card-action-btn card-action-record" data-id="${c.id}">${ICONS.detail} ${LANG_DICT[state.lang].detailsRecordsBtn}</button>
+        <button class="card-action-btn card-action-call" data-id="${c.id}">${ICONS.call} ${LANG_DICT[state.lang].callBtnText}</button>
       </div>`;
     
     card.querySelector(".card-action-record").addEventListener("click", () => openCustomerDetail(c.id));
@@ -198,7 +499,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// إعداد الاستجابة اللحظية للوحة المفاتيح
+// إعداد الاستجابة اللحظية للوحة المفاتيح التناظرية
 let dialBuffer = "";
 $("btnAddCustomerFab").addEventListener("click", () => {
   dialBuffer = ""; $("customerName").value = ""; $("customerPhone").value = "";
@@ -207,7 +508,6 @@ $("btnAddCustomerFab").addEventListener("click", () => {
 
 $("btnCloseAddCustomer").addEventListener("click", () => showScreen("screen-customers"));
 
-// تحويل الحدث إلى pointerdown للاستجابة السريعة
 document.querySelectorAll(".dial-key[data-key]").forEach(btn => {
   btn.addEventListener("pointerdown", (e) => {
     e.preventDefault();
@@ -224,10 +524,10 @@ $("btnBackspace").addEventListener("pointerdown", (e) => {
 
 $("btnSaveCustomer").addEventListener("click", async () => {
   const phone = normalizePhone($("customerPhone").value);
-  if (!phone) return showToast("الرجاء إدخال رقم الجوال أولاً عبر اللوحة");
+  if (!phone) return showToast(LANG_DICT[state.lang].toastPhoneRequired);
   try {
     await addDoc(customersCol(), {
-      name: $("customerName").value.trim() || "بدون اسم",
+      name: $("customerName").value.trim() || "N/A",
       phone,
       positiveComment: "",
       improvementComment: "",
@@ -237,10 +537,10 @@ $("btnSaveCustomer").addEventListener("click", async () => {
       recordingUrl: "",
       createdAt: serverTimestamp()
     });
-    showToast("تم حفظ سجل العميل بنجاح");
+    showToast(LANG_DICT[state.lang].toastCustSaved);
     dialBuffer = ""; $("customerName").value = ""; $("customerPhone").value = "";
     showScreen("screen-customers");
-  } catch (err) { showToast("فشل حفظ العميل في فايربيس"); }
+  } catch (err) { showToast(LANG_DICT[state.lang].toastFirebaseErr); }
 });
 
 function listenTags() {
@@ -253,13 +553,14 @@ function listenTags() {
 
 function renderSettingsTags() {
   const list = $("settingsTagsList");
-  list.innerHTML = state.tags.length ? "" : `<p style="color:var(--text-dim); text-align:center;">لا توجد أوسمة عامة مخصصة.</p>`;
+  if (!list) return;
+  list.innerHTML = state.tags.length ? "" : `<p style="color:var(--text-dim); text-align:center;">${LANG_DICT[state.lang].noCustomTags}</p>`;
   state.tags.forEach(tag => {
     const row = document.createElement("div");
     row.className = "settings-tag-row";
     row.innerHTML = `<span>${escapeHtml(tag.name)}</span><button data-id="${tag.id}">${ICONS.trash}</button>`;
     row.querySelector("button").addEventListener("click", async () => {
-      if (confirm(`هل أنت متأكد من حذف وسم "${tag.name}"؟`)) await deleteDoc(doc(db, "tags", tag.id));
+      if (confirm(LANG_DICT[state.lang].confirmDeleteTag.replace("{name}", tag.name))) await deleteDoc(doc(db, "tags", tag.id));
     });
     list.appendChild(row);
   });
@@ -269,11 +570,11 @@ $("btnAddTag").addEventListener("click", async () => {
   const name = $("newTagInput").value.trim();
   if (!name) return;
   await addDoc(collection(db, "tags"), { name, createdAt: serverTimestamp() });
-  $("newTagInput").value = ""; showToast("تم إضافة الوسم للنظام");
+  $("newTagInput").value = ""; showToast(LANG_DICT[state.lang].toastTagAdded);
 });
 
 function renderTagToggles(container, selectedSet) {
-  container.innerHTML = state.tags.length ? "" : `<p style="color:var(--text-dim);">لا توجد أوسمة مفعلة.</p>`;
+  container.innerHTML = state.tags.length ? "" : `<p style="color:var(--text-dim);">${LANG_DICT[state.lang].noActiveTags}</p>`;
   state.tags.forEach(tag => {
     const btn = document.createElement("button");
     btn.className = "tag-toggle" + (selectedSet.has(tag.name) ? " active" : "");
@@ -292,16 +593,14 @@ function renderTagToggles(container, selectedSet) {
 
 function findCustomer(id) { return state.customers.find(c => c.id === id); }
 
-// معالجة تشغيل الصوت من الذاكرة المحلية
 function openCustomerDetail(id) {
   const c = findCustomer(id);
   if (!c) return;
   state.selectedCustomerId = id;
   state.detailSelectedTags = new Set(c.tags || []);
-  $("detailName").textContent = c.name || "بدون اسم";
+  $("detailName").textContent = c.name || "N/A";
   $("detailPhone").textContent = c.phone || "";
   
-  // شحن خانتي الملاحظات المنفصلتين
   $("detailPositiveComment").value = c.positiveComment || "";
   $("detailImprovementComment").value = c.improvementComment || "";
   
@@ -327,10 +626,10 @@ function openCustomerDetail(id) {
 $("btnCloseDetail").addEventListener("click", () => showScreen("screen-customers"));
 
 $("btnDeleteCustomer").addEventListener("click", async () => {
-  if (confirm("هل تود حذف سجل العميل هذا نهائياً من قاعدة البيانات الميدانية؟")) {
+  if (confirm(LANG_DICT[state.lang].confirmDeleteCust)) {
     const c = findCustomer(state.selectedCustomerId);
     if (c && c.recordingUrl && c.recordingUrl.startsWith("local:")) {
-      localStorage.removeItem(c.recordingUrl); // تنظيف الذاكرة
+      localStorage.removeItem(c.recordingUrl);
     }
     await deleteDoc(doc(customersCol(), state.selectedCustomerId));
     showScreen("screen-customers");
@@ -350,8 +649,8 @@ $("btnSaveDetail").addEventListener("click", async () => {
       recordingUrl,
       updatedAt: serverTimestamp()
     });
-    showToast("تم تحديث البيانات"); showScreen("screen-customers");
-  } catch (err) { showToast("فشل حفظ التعديلات"); }
+    showToast(LANG_DICT[state.lang].toastDataUpdated); showScreen("screen-customers");
+  } catch (err) { showToast(LANG_DICT[state.lang].toastSaveFailed); }
 });
 
 $("btnCallFromDetail").addEventListener("click", () => openCallScreen(state.selectedCustomerId));
@@ -359,9 +658,9 @@ $("btnCallFromDetail").addEventListener("click", () => openCallScreen(state.sele
 function openCallScreen(id) {
   const c = findCustomer(id);
   state.selectedCustomerId = id;
-  $("callName").textContent = c.name || "بدون اسم";
+  $("callName").textContent = c.name || "N/A";
   $("callPhone").textContent = c.phone || "";
-  $("callStatus").textContent = "جاهز للاتصال الميداني";
+  $("callStatus").textContent = LANG_DICT[state.lang].readyToCall;
   $("btnDial").href = "tel:" + (c.phone || "");
   $("btnDial").style.display = "flex"; $("btnAnswered").style.display = "none"; $("postCallActions").style.display = "none";
   showScreen("screen-call");
@@ -369,7 +668,7 @@ function openCallScreen(id) {
 
 $("btnDial").addEventListener("click", async () => {
   await updateDoc(doc(customersCol(), state.selectedCustomerId), { called: true, lastCallAt: serverTimestamp() });
-  $("callStatus").textContent = "جارٍ إجراء الاتصال الخارجي...";
+  $("callStatus").textContent = LANG_DICT[state.lang].callingState;
   $("btnDial").style.display = "none"; $("btnAnswered").style.display = "block";
 });
 
@@ -377,12 +676,12 @@ $("btnAnswered").addEventListener("click", () => {
   $("btnAnswered").style.display = "none"; $("postCallActions").style.display = "flex";
 });
 
-// تطبيق وسم "تم" بشكل تلقائي عند الرد
 $("btnYesAnswered").addEventListener("click", async () => {
   const c = findCustomer(state.selectedCustomerId);
   let updatedTags = c ? [...(c.tags || [])] : [];
-  if (!updatedTags.includes("تم")) {
-    updatedTags.push("تم");
+  const systemDoneTag = state.lang === "ar" ? "تم" : "Done";
+  if (!updatedTags.includes(systemDoneTag)) {
+    updatedTags.push(systemDoneTag);
   }
   await updateDoc(doc(customersCol(), state.selectedCustomerId), { 
     answered: true,
@@ -401,9 +700,9 @@ $("btnEndCallScreen").addEventListener("click", () => showScreen("screen-custome
 function openAfterAnswerScreen(id) {
   const c = findCustomer(id);
   state.afterAnswerSelectedTags = new Set(c.tags || []);
-  state.afterAnswerSelectedTags.add("تم"); 
+  state.afterAnswerSelectedTags.add(state.lang === "ar" ? "تم" : "Done"); 
   
-  $("afterAnswerName").textContent = c.name || "بدون اسم";
+  $("afterAnswerName").textContent = c.name || "N/A";
   $("afterAnswerPositiveComment").value = c.positiveComment || "";
   $("afterAnswerImprovementComment").value = c.improvementComment || "";
   
@@ -419,7 +718,7 @@ $("btnSaveAfterAnswer").addEventListener("click", async () => {
       recordingUrl = await saveRecordingToLocalStorage(state.pendingAudioBlob, state.selectedCustomerId);
     }
     
-    state.afterAnswerSelectedTags.add("تم");
+    state.afterAnswerSelectedTags.add(state.lang === "ar" ? "تم" : "Done");
     
     await updateDoc(doc(customersCol(), state.selectedCustomerId), {
       positiveComment: $("afterAnswerPositiveComment").value.trim(),
@@ -428,16 +727,16 @@ $("btnSaveAfterAnswer").addEventListener("click", async () => {
       recordingUrl,
       updatedAt: serverTimestamp()
     });
-    showToast("تم إنجاز المهمة وحفظ التقرير");
+    showToast(LANG_DICT[state.lang].toastDataUpdated);
     showScreen("screen-customers");
-  } catch (err) { showToast("فشل إتمام الحفظ الميداني"); }
+  } catch (err) { showToast(LANG_DICT[state.lang].toastSaveFailed); }
 });
 
 function resetRecordUI(target) {
   const icon = target === "detail" ? $("recordIcon") : $("recordIcon2");
   const label = target === "detail" ? $("recordLabel") : $("recordLabel2");
   const btn = target === "detail" ? $("btnRecord") : $("btnRecord2");
-  icon.innerHTML = ICONS.mic; label.textContent = "تسجيل ملخص صوتي";
+  icon.innerHTML = ICONS.mic; label.textContent = LANG_DICT[state.lang].recordAudioSummaryLabel;
   btn.classList.remove("recording");
   (target === "detail" ? $("recordTimer") : $("recordTimer2")).textContent = "";
   state.pendingAudioBlob = null;
@@ -461,12 +760,12 @@ async function startRecording(target) {
     const icon = target === "detail" ? $("recordIcon") : $("recordIcon2");
     const label = target === "detail" ? $("recordLabel") : $("recordLabel2");
     const btn = target === "detail" ? $("btnRecord") : $("btnRecord2");
-    icon.innerHTML = ICONS.stop; label.textContent = "إيقاف التسجيل الصوتي"; btn.classList.add("recording");
+    icon.innerHTML = ICONS.stop; label.textContent = LANG_DICT[state.lang].stopRecordLabel; btn.classList.add("recording");
     state.recordTimerInterval = setInterval(() => {
       state.recordSeconds++;
       (target === "detail" ? $("recordTimer") : $("recordTimer2")).textContent = `${String(Math.floor(state.recordSeconds / 60)).padStart(2, "0")}:${String(state.recordSeconds % 60).padStart(2, "0")}`;
     }, 1000);
-  } catch (err) { showToast("تعذر صلاحية الوصول للميكروفون الخاص بك"); }
+  } catch (err) { showToast(LANG_DICT[state.lang].toastMicError); }
 }
 
 function stopRecording(target) {
@@ -477,7 +776,6 @@ function stopRecording(target) {
 $("btnRecord").addEventListener("click", () => state.mediaRecorder?.state === "recording" ? stopRecording("detail") : startRecording("detail"));
 $("btnRecord2").addEventListener("click", () => state.mediaRecorder?.state === "recording" ? stopRecording("afterAnswer") : startRecording("afterAnswer"));
 
-// دالة حفظ الصوت في ذاكرة المتصفح
 function saveRecordingToLocalStorage(blob, customerId) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -488,8 +786,8 @@ function saveRecordingToLocalStorage(blob, customerId) {
         localStorage.setItem(localKey, base64String);
         resolve(localKey);
       } catch (error) {
-        console.error("Local Storage allocation failed:", error);
-        showToast("تنبيه: مساحة تخزين المتصفح ممتلئة، تم عرض الصوت حالياً دون حفظ دائم");
+        console.error("Storage limit reached:", error);
+        showToast(LANG_DICT[state.lang].toastStorageFull);
         resolve("");
       }
     };
@@ -498,20 +796,21 @@ function saveRecordingToLocalStorage(blob, customerId) {
   });
 }
 
-$("btnSettings").addEventListener("click", () => showScreen("screen-settings"));
-$("btnCloseSettings").addEventListener("click", () => showScreen("screen-customers"));
-$("btnGoReports").addEventListener("click", () => { showScreen("screen-reports"); renderReports(); });
-$("btnCloseReports").addEventListener("click", () => showScreen("screen-settings"));
-
+// رندرة التحليلات والجداول المتقاطعة
 async function renderReports() {
   const currentBox = $("reportTagsCurrentBranch");
   const tableBox = $("reportBranchComparison");
-  currentBox.innerHTML = `<p style="color:var(--text-dim);text-align:center;">جارٍ استخراج التقارير وتحليل الخانات المزدوجة...</p>`;
+  if (!currentBox || !tableBox) return;
+  
+  currentBox.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].analyzingReports}</p>`;
   tableBox.innerHTML = "";
 
   try {
     const currentCounts = {};
     state.tags.forEach(t => currentCounts[t.name] = 0);
+    // دمج فرز الأوسمة التلقائية مثل تم و Done في الإحصائيات
+    currentCounts[state.lang === "ar" ? "تم" : "Done"] = 0;
+
     state.customers.forEach(c => (c.tags || []).forEach(t => { currentCounts[t] = (currentCounts[t] || 0) + 1; }));
 
     const maxCurrent = Math.max(1, ...Object.values(currentCounts));
@@ -522,7 +821,7 @@ async function renderReports() {
           <div class="report-bar-track"><div class="report-bar-fill" style="width:${(count / maxCurrent) * 100}%"></div></div>
           <span class="report-bar-count">${count}</span>
         </div>`).join("")
-      : `<p style="color:var(--text-dim);text-align:center;">لا توجد إحصائيات متوفرة لفرز الأوسمة.</p>`;
+      : `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].noStatsAvailable}</p>`;
 
     const branchCounts = {};
     for (const branch of state.branches) {
@@ -535,13 +834,13 @@ async function renderReports() {
       branchCounts[branch.name] = counts;
     }
 
-    const allTags = state.tags.map(t => t.name);
+    const allTags = Array.from(new Set([...state.tags.map(t => t.name), "تم", "Done"]));
     if (!allTags.length || !state.branches.length) {
-      tableBox.innerHTML = `<p style="color:var(--text-dim);text-align:center;">لا توجد داتا فروع كافية للمقارنة بين الفروع.</p>`;
+      tableBox.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].insufficientData}</p>`;
       return;
     }
 
-    let tableHtml = `<table class="report-table"><thead><tr><th>الفرع الميداني</th>${allTags.map(t => `<th>${escapeHtml(t)}</th>`).join("")}</tr></thead><tbody>`;
+    let tableHtml = `<table class="report-table"><thead><tr><th>${LANG_DICT[state.lang].fieldBranchColHeader}</th>${allTags.map(t => `<th>${escapeHtml(t)}</th>`).join("")}</tr></thead><tbody>`;
     state.branches.forEach(branch => {
       const counts = branchCounts[branch.name] || {};
       tableHtml += `<tr><td><b>${escapeHtml(branch.name)}</b></td>${allTags.map(t => `<td>${counts[t] || 0}</td>`).join("")}</tr>`;
@@ -550,13 +849,11 @@ async function renderReports() {
     tableBox.innerHTML = tableHtml;
   } catch (err) {
     console.error(err);
-    showToast("تعذر تحميل جداول التقارير");
+    showToast(LANG_DICT[state.lang].loadReportsErr);
   }
 }
 
-try { initTheme(); } catch (err) { console.error(err); }
-
-// ===================== تهيئة قيود أبعاد المتصفح لمنع التشتت الميداني =====================
+// قيود أبعاد المتصفح لمنع التشتت الميداني
 document.addEventListener("wheel", (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && ["+", "-", "=", "0"].includes(e.key)) e.preventDefault();
@@ -569,4 +866,3 @@ document.addEventListener("touchend", (e) => {
   if (now - lastTouchEnd <= 300) e.preventDefault();
   lastTouchEnd = now;
 }, false);
-// ============================================================================
