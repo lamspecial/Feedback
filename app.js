@@ -25,13 +25,15 @@ const ICONS = {
   stop: `<svg class="icon-svg" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`,
   detail: `<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>`,
   call: `<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>`,
-  trash: `<svg class="icon-svg text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`
+  trash: `<svg class="icon-svg text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`,
+  steering: `<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 15v7M8 10l-6-3M16 10l6-3"/></svg>`,
+  paste: `<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>`
 };
 
 // قاموس الترجمة الكامل لتعريب وتغريب النظام بالكامل دون اختزال
 const LANG_DICT = {
   en: {
-    selectBranchHeader: "Select Field Branch",
+    selectBranchHeader: "Select Branch",
     createNewBranchBtn: "Create New Branch",
     backBtn: "‹ Back",
     statTotalLbl: "Total Customers",
@@ -55,6 +57,8 @@ const LANG_DICT = {
     customerAnsweredQuestion: "Did the customer answer the call?",
     yesAnsweredBtn: "Yes, Answered",
     noAnsweredBtn: "No, Didn't Answer",
+    uselessCallBtn: "Useless Call",
+    uselessCallLbl: "Useless Call",
     cancelReturnBtn: "Cancel & Return",
     successfulCallHeader: "Successful Call Summary",
     tagAutoAppliedText: "✓ 'Done' tag automatically applied",
@@ -65,7 +69,7 @@ const LANG_DICT = {
     branchComparisonTitle: "Cross-Branch Comparative Grid",
     settingsHeader: "General Settings",
     languageSelectLabel: "System Language",
-    drivingModeLabel: "Enable Driving Mode (Light / High Contrast)",
+    drivingModeLabel: "Enable Driving Mode (Large Layout)",
     manageCurrentBranchTitle: "Current Branch Actions",
     renameBranchBtn: "Rename Branch",
     deleteBranchBtn: "Delete Branch",
@@ -82,7 +86,7 @@ const LANG_DICT = {
     promptNewBranch: "Enter new branch name:",
     toastBranchSuccess: "Branch created successfully",
     toastBranchFailed: "Failed to create branch",
-    toastLoadBranchErr: "Unable to load field branches",
+    toastLoadBranchErr: "Unable to load branches",
     toastSyncCustErr: "Unable to sync customer data",
     noCustomers: "No customers added in this branch.",
     statusAnswered: "Answered & Completed",
@@ -91,32 +95,37 @@ const LANG_DICT = {
     detailsRecordsBtn: "Details & Records",
     callBtnText: "Call",
     toastPhoneRequired: "Please enter phone number via pad first",
+    toastDuplicatePhone: "Phone number already exists in a branch!",
     toastCustSaved: "Customer record saved successfully",
     toastFirebaseErr: "Firebase operation failed",
     noCustomTags: "No custom tags available.",
     confirmDeleteTag: "Are you sure you want to delete tag \"{name}\"?",
     toastTagAdded: "Tag added to the system",
     noActiveTags: "No active tags.",
-    confirmDeleteCust: "Delete this customer permanently from field database?",
+    confirmDeleteCust: "Delete this customer permanently from database?",
     toastDataUpdated: "Data updated successfully",
     toastSaveFailed: "Failed to save updates",
-    readyToCall: "Ready for field call",
-    callingState: "Making external call...",
+    readyToCall: "Ready for call",
+    callingState: "Making call...",
     stopRecordLabel: "Stop Audio Recording",
     toastMicError: "Could not access microphone",
     toastStorageFull: "Alert: Browser storage full! Saved audio temporarily.",
     analyzingReports: "Extracting reports and analyzing double entries...",
     noStatsAvailable: "No data available for tag analysis.",
     insufficientData: "Insufficient data for comparison grid.",
-    fieldBranchColHeader: "Field Branch",
+    fieldBranchColHeader: "Branch",
     loadReportsErr: "Could not load data tables",
-    branchSelectRequired: "Please select a field branch first!",
+    branchSelectRequired: "Please select a branch first!",
     promptRenameBranch: "Enter new name for this branch:",
     toastBranchRenamed: "Branch renamed successfully",
-    confirmDeleteBranch: "Warning! Deleting this branch will erase all of its internal customer records permanently. Proceed?"
+    confirmDeleteBranch: "Warning! Deleting this branch will erase all of its internal customer records permanently. Proceed?",
+    
+    tagType_positive: "Positive",
+    tagType_negative: "Negative",
+    tagType_competitor: "Competitors"
   },
   ar: {
-    selectBranchHeader: "اختر الفرع الميداني",
+    selectBranchHeader: "اختر الفرع",
     createNewBranchBtn: "إنشاء فرع جديد",
     backBtn: "‹ العودة",
     statTotalLbl: "إجمالي العملاء",
@@ -140,6 +149,8 @@ const LANG_DICT = {
     customerAnsweredQuestion: "هل رد العميل على الاتصال؟",
     yesAnsweredBtn: "نعم، أجاب",
     noAnsweredBtn: "لا، لم يرد",
+    uselessCallBtn: "مكالمة غير مفيدة",
+    uselessCallLbl: "مكالمة غير مفيدة",
     cancelReturnBtn: "إلغاء والعودة للقائمة",
     successfulCallHeader: "نتائج المكالمة الناجحة",
     tagAutoAppliedText: "✓ تم تطبيق وسم 'تم' تلقائياً",
@@ -150,7 +161,7 @@ const LANG_DICT = {
     branchComparisonTitle: "المقارنة الشاملة بين الفروع",
     settingsHeader: "الإعدادات العامة",
     languageSelectLabel: "لغة النظام",
-    drivingModeLabel: "تفعيل وضع القيادة (مظهر فاتح / تباين عالي)",
+    drivingModeLabel: "تفعيل وضع القيادة (واجهة عريضة)",
     manageCurrentBranchTitle: "إجراءات الفرع الحالي",
     renameBranchBtn: "تعديل اسم الفرع",
     deleteBranchBtn: "حذف الفرع نهائياً",
@@ -166,7 +177,7 @@ const LANG_DICT = {
     promptNewBranch: "أدخل اسم الفرع الجديد:",
     toastBranchSuccess: "تم إنشاء الفرع بنجاح",
     toastBranchFailed: "فشل إنشاء الفرع",
-    toastLoadBranchErr: "تعذر تحميل الفروع الميدانية",
+    toastLoadBranchErr: "تعذر تحميل الفروع",
     toastSyncCustErr: "تعذر مزامنة بيانات العملاء",
     noCustomers: "لا يوجد عملاء مضافين في هذا الفرع.",
     statusAnswered: "تم الرد والإنجاز",
@@ -175,29 +186,34 @@ const LANG_DICT = {
     detailsRecordsBtn: "تفاصيل وسجلات",
     callBtnText: "اتصال",
     toastPhoneRequired: "الرجاء إدخال رقم الجوال أولاً عبر اللوحة",
+    toastDuplicatePhone: "رقم الجوال موجود مسبقاً في أحد الفروع!",
     toastCustSaved: "تم حفظ سجل العميل بنجاح",
     toastFirebaseErr: "فشل حفظ العميل في فايربيس",
     noCustomTags: "لا توجد أوسمة عامة مخصصة.",
     confirmDeleteTag: "هل أنت متأكد من حذف وسم \"{name}\"؟",
     toastTagAdded: "تم إضافة الوسم للنظام",
     noActiveTags: "لا توجد أوسمة مفعلة.",
-    confirmDeleteCust: "هل تود حذف سجل العميل هذا نهائياً من قاعدة البيانات الميدانية؟",
+    confirmDeleteCust: "هل تود حذف سجل العميل هذا نهائياً من قاعدة البيانات؟",
     toastDataUpdated: "تم تحديث البيانات",
     toastSaveFailed: "فشل حفظ التعديلات",
-    readyToCall: "جاهز للاتصال الميداني",
-    callingState: "جارٍ إجراء الاتصال الخارجي...",
+    readyToCall: "جاهز للاتصال",
+    callingState: "جارٍ إجراء الاتصال...",
     stopRecordLabel: "إيقاف التسجيل الصوتي",
     toastMicError: "تعذر صلاحية الوصول للميكروفون الخاص بك",
     toastStorageFull: "تنبيه: مساحة تخزين المتصفح ممتلئة، تم عرض الصوت حالياً دون حفظ دائم",
     analyzingReports: "جارٍ استخراج التقارير وتحليل الخانات المزدوجة...",
     noStatsAvailable: "لا توجد إحصائيات متوفرة لفرز الأوسمة.",
-    insufficientData: "لا توجد داتا فروع كافية للمقارنة بين الفروع.",
-    fieldBranchColHeader: "الفرع الميداني",
+    insufficientData: "لا توجد بيانات فروع كافية للمقارنة بين الفروع.",
+    fieldBranchColHeader: "الفرع",
     loadReportsErr: "تعذر تحميل جداول التقارير",
-    branchSelectRequired: "الرجاء اختيار فرع ميداني أولاً!",
+    branchSelectRequired: "الرجاء اختيار فرع أولاً!",
     promptRenameBranch: "أدخل الاسم الجديد للفرع:",
     toastBranchRenamed: "تم تعديل اسم الفرع بنجاح",
-    confirmDeleteBranch: "تحذير! حذف هذا الفرع سيؤدي لحذف كافة سجلات العملاء التابعين له نهائياً. هل أنت متأكد؟"
+    confirmDeleteBranch: "تحذير! حذف هذا الفرع سيؤدي لحذف كافة سجلات العملاء التابعين له نهائياً. هل أنت متأكد؟",
+
+    tagType_positive: "إيجابية",
+    tagType_negative: "سلبية",
+    tagType_competitor: "منافسين"
   }
 };
 
@@ -208,7 +224,8 @@ const state = {
   mediaRecorder: null, audioChunks: [], recordTarget: null, recordTimerInterval: null,
   recordSeconds: 0, pendingAudioBlob: null, unsubCustomers: null, unsubBranches: null, unsubTags: null,
   lang: localStorage.getItem("app-lang") || "en",
-  drivingMode: localStorage.getItem("app-driving-mode") === "true"
+  drivingMode: localStorage.getItem("app-driving-mode") === "true",
+  callStartTime: null
 };
 
 function $(id) { return document.getElementById(id); }
@@ -227,11 +244,10 @@ function showScreen(id) {
       else item.classList.remove("active");
     });
   } else {
-    // إخفاء شريط التنقل في الشاشات العريضة التفاعلية (مثل وضع الاتصال أو تفاصيل العميل لمنع الخروج الخاطئ)
+    // إخفاء شريط التنقل في الشاشات العريضة التفاعلية
     $("mainBottomNav").style.display = "none";
   }
   
-  // شحن التقارير تلقائياً عند الدخول لشاشتها
   if (id === "screen-reports") {
     renderReports();
   }
@@ -266,7 +282,7 @@ function toggleTheme() {
 $("btnThemeToggle")?.addEventListener("click", toggleTheme);
 $("btnThemeToggleSettings")?.addEventListener("click", toggleTheme);
 
-// معالجة اللغات الميدانية والترجمات اللحظية للواجهات
+// معالجة اللغات والترجمات اللحظية للواجهات
 function applyLanguage(lang) {
   state.lang = lang;
   localStorage.setItem("app-lang", lang);
@@ -274,7 +290,6 @@ function applyLanguage(lang) {
   document.documentElement.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
   $("selectLanguage").value = lang;
 
-  // ترجمة جميع العناصر الحاملة لخصائص الترجمة الموحدة
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.dataset.i18n;
     if (LANG_DICT[lang] && LANG_DICT[lang][key]) {
@@ -282,7 +297,11 @@ function applyLanguage(lang) {
     }
   });
 
-  // إعادة رندرة المكونات لتطبيق نصوص اللغة الجديدة
+  document.querySelectorAll("[data-i18n-options]").forEach(el => {
+      const type = el.value;
+      if (LANG_DICT[lang]["tagType_" + type]) el.textContent = LANG_DICT[lang]["tagType_" + type];
+  });
+
   renderBranches();
   renderCustomers();
   if ($("screen-reports").classList.contains("active")) renderReports();
@@ -308,6 +327,12 @@ function applyDrivingMode(active) {
 $("chkDrivingMode").addEventListener("change", (e) => {
   applyDrivingMode(e.target.checked);
 });
+document.querySelectorAll(".btn-driving-toggle").forEach(btn => {
+  btn.addEventListener("click", () => {
+    applyDrivingMode(!state.drivingMode);
+  });
+});
+
 
 // ربط أحداث شريط التنقل السفلي الموحد
 document.querySelectorAll(".bottom-nav .nav-item").forEach(btn => {
@@ -321,7 +346,7 @@ document.querySelectorAll(".bottom-nav .nav-item").forEach(btn => {
   });
 });
 
-// تشغيل النظام الميداني
+// تشغيل النظام
 initTheme();
 applyLanguage(state.lang);
 applyDrivingMode(state.drivingMode);
@@ -377,14 +402,12 @@ $("btnBackToBranches").addEventListener("click", () => {
   state.currentBranchId = null;
   state.currentBranchName = "";
   
-  // إخفاء خانة التحكم في الفرع داخل الإعدادات لعدم تحديد أي فرع حالياً
   $("branchManagementSection").style.display = "none";
   $("branchManageDivider").style.display = "none";
 
   showScreen("screen-branch");
 });
 
-// تعديل وحذف اسم الفرع الحالي من الإعدادات
 $("btnRenameBranch").addEventListener("click", async () => {
   if (!state.currentBranchId) return;
   const newName = prompt(LANG_DICT[state.lang].promptRenameBranch, state.currentBranchName);
@@ -398,13 +421,11 @@ $("btnRenameBranch").addEventListener("click", async () => {
   } catch (err) { showToast(LANG_DICT[state.lang].toastSaveFailed); }
 });
 
-// حذف الفرع وكافة محتوياته الميدانية
 $("btnDeleteBranch").addEventListener("click", async () => {
   if (!state.currentBranchId) return;
   if (confirm(LANG_DICT[state.lang].confirmDeleteBranch)) {
     try {
       const bId = state.currentBranchId;
-      // تنظيف المشتركين أولاً لتفادي بقايا الكاش
       if (state.unsubCustomers) state.unsubCustomers();
       
       await deleteDoc(doc(db, "branches", bId));
@@ -443,10 +464,9 @@ function renderCustomers() {
     return;
   }
 
-  // فرز متقدم: المضاف حديثاً -> لم يرد -> المنجز
   state.customers.sort((a, b) => {
     const getGroupOrder = (c) => {
-      if (c.answered) return 3;
+      if (c.answered || c.isUseless) return 3;
       if (c.called && !c.answered) return 2;
       return 1;
     };
@@ -463,7 +483,25 @@ function renderCustomers() {
 
   state.customers.forEach(c => {
     const card = document.createElement("div");
-    card.className = "customer-card" + (c.answered ? " answered" : (c.called ? " called" : ""));
+    card.className = "customer-card" + (c.answered || c.isUseless ? " answered" : (c.called ? " called" : ""));
+    
+    // حالة المكالمة الغير مفيدة
+    if (c.isUseless) {
+      card.innerHTML = `
+        <div class="customer-card-top">
+          <div>
+            <p class="customer-name">${escapeHtml(c.name || "N/A")}</p>
+            <p class="customer-phone">${escapeHtml(c.phone || "")}</p>
+            ${c.callDuration ? `<p style="font-size:11px; color:var(--text-dim); margin-top:2px;">⏱ ${c.callDuration}s</p>` : ""}
+          </div>
+          <span class="status-badge" style="background:var(--danger); color:white; display:flex; align-items:center; gap:4px;">
+            ${ICONS.trash} ${LANG_DICT[state.lang].uselessCallLbl}
+          </span>
+        </div>`;
+      list.appendChild(card);
+      return;
+    }
+
     const tagsHtml = (c.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
     const statusClass = c.answered ? "answered" : (c.called ? "called" : "not-called");
     
@@ -476,6 +514,7 @@ function renderCustomers() {
         <div>
           <p class="customer-name">${escapeHtml(c.name || "N/A")}</p>
           <p class="customer-phone">${escapeHtml(c.phone || "")}</p>
+          ${c.callDuration ? `<p style="font-size:11px; color:var(--text-dim); margin-top:2px;">⏱ ${c.callDuration}s</p>` : ""}
         </div>
         <span class="status-badge ${statusClass}">${statusText}</span>
       </div>
@@ -522,9 +561,40 @@ $("btnBackspace").addEventListener("pointerdown", (e) => {
   $("customerPhone").value = dialBuffer;
 });
 
+$("btnPastePhone").addEventListener("pointerdown", async (e) => {
+  e.preventDefault();
+  try {
+    const text = await navigator.clipboard.readText();
+    const nums = text.replace(/[^\d+]/g, "");
+    if (nums) {
+      dialBuffer += nums;
+      $("customerPhone").value = dialBuffer;
+    }
+  } catch(err) {
+    showToast(state.lang === "ar" ? "فشل اللصق" : "Paste failed");
+  }
+});
+
 $("btnSaveCustomer").addEventListener("click", async () => {
   const phone = normalizePhone($("customerPhone").value);
   if (!phone) return showToast(LANG_DICT[state.lang].toastPhoneRequired);
+  
+  // التحقق من عدم تكرار الرقم في جميع الفروع
+  let isDuplicate = false;
+  for (const b of state.branches) {
+    try {
+      const snap = await getDocs(collection(db, "branches", b.id, "customers"));
+      snap.forEach(d => {
+         if (d.data().phone === phone) isDuplicate = true;
+      });
+    } catch(e) {}
+  }
+
+  if (isDuplicate) {
+    showToast(LANG_DICT[state.lang].toastDuplicatePhone);
+    return;
+  }
+
   try {
     await addDoc(customersCol(), {
       name: $("customerName").value.trim() || "N/A",
@@ -534,6 +604,8 @@ $("btnSaveCustomer").addEventListener("click", async () => {
       tags: [],
       called: false,
       answered: false,
+      isUseless: false,
+      callDuration: 0,
       recordingUrl: "",
       createdAt: serverTimestamp()
     });
@@ -558,7 +630,8 @@ function renderSettingsTags() {
   state.tags.forEach(tag => {
     const row = document.createElement("div");
     row.className = "settings-tag-row";
-    row.innerHTML = `<span>${escapeHtml(tag.name)}</span><button data-id="${tag.id}">${ICONS.trash}</button>`;
+    const typeLabel = LANG_DICT[state.lang]["tagType_" + (tag.type || "positive")] || tag.type || "positive";
+    row.innerHTML = `<span>${escapeHtml(tag.name)} <small style="color:var(--text-dim);">(${typeLabel})</small></span><button data-id="${tag.id}">${ICONS.trash}</button>`;
     row.querySelector("button").addEventListener("click", async () => {
       if (confirm(LANG_DICT[state.lang].confirmDeleteTag.replace("{name}", tag.name))) await deleteDoc(doc(db, "tags", tag.id));
     });
@@ -568,26 +641,46 @@ function renderSettingsTags() {
 
 $("btnAddTag").addEventListener("click", async () => {
   const name = $("newTagInput").value.trim();
+  const type = $("newTagTypeInput").value;
   if (!name) return;
-  await addDoc(collection(db, "tags"), { name, createdAt: serverTimestamp() });
+  await addDoc(collection(db, "tags"), { name, type, createdAt: serverTimestamp() });
   $("newTagInput").value = ""; showToast(LANG_DICT[state.lang].toastTagAdded);
 });
 
 function renderTagToggles(container, selectedSet) {
   container.innerHTML = state.tags.length ? "" : `<p style="color:var(--text-dim);">${LANG_DICT[state.lang].noActiveTags}</p>`;
-  state.tags.forEach(tag => {
-    const btn = document.createElement("button");
-    btn.className = "tag-toggle" + (selectedSet.has(tag.name) ? " active" : "");
-    btn.textContent = tag.name;
-    btn.addEventListener("click", () => {
-      if (selectedSet.has(tag.name)) {
-        selectedSet.delete(tag.name);
-      } else {
-        selectedSet.add(tag.name);
-      }
-      btn.classList.toggle("active");
-    });
-    container.appendChild(btn);
+  if(!state.tags.length) return;
+
+  const types = ['positive', 'negative', 'competitor'];
+  types.forEach(type => {
+    const typeTags = state.tags.filter(t => (t.type || 'positive') === type);
+    if(typeTags.length > 0) {
+      const groupTitle = document.createElement("h4");
+      groupTitle.textContent = LANG_DICT[state.lang]["tagType_" + type];
+      groupTitle.style.marginTop = "10px";
+      groupTitle.style.marginBottom = "8px";
+      groupTitle.style.fontSize = "13px";
+      groupTitle.style.color = "var(--text-dim)";
+      container.appendChild(groupTitle);
+
+      const wrap = document.createElement("div");
+      wrap.className = "tags-wrap";
+      typeTags.forEach(tag => {
+        const btn = document.createElement("button");
+        btn.className = "tag-toggle" + (selectedSet.has(tag.name) ? " active" : "");
+        btn.textContent = tag.name;
+        btn.addEventListener("click", () => {
+          if (selectedSet.has(tag.name)) {
+            selectedSet.delete(tag.name);
+          } else {
+            selectedSet.add(tag.name);
+          }
+          btn.classList.toggle("active");
+        });
+        wrap.appendChild(btn);
+      });
+      container.appendChild(wrap);
+    }
   });
 }
 
@@ -658,6 +751,7 @@ $("btnCallFromDetail").addEventListener("click", () => openCallScreen(state.sele
 function openCallScreen(id) {
   const c = findCustomer(id);
   state.selectedCustomerId = id;
+  state.callStartTime = null;
   $("callName").textContent = c.name || "N/A";
   $("callPhone").textContent = c.phone || "";
   $("callStatus").textContent = LANG_DICT[state.lang].readyToCall;
@@ -667,6 +761,7 @@ function openCallScreen(id) {
 }
 
 $("btnDial").addEventListener("click", async () => {
+  state.callStartTime = Date.now();
   await updateDoc(doc(customersCol(), state.selectedCustomerId), { called: true, lastCallAt: serverTimestamp() });
   $("callStatus").textContent = LANG_DICT[state.lang].callingState;
   $("btnDial").style.display = "none"; $("btnAnswered").style.display = "block";
@@ -676,7 +771,13 @@ $("btnAnswered").addEventListener("click", () => {
   $("btnAnswered").style.display = "none"; $("postCallActions").style.display = "flex";
 });
 
+function getCallDuration() {
+  if (state.callStartTime) return Math.floor((Date.now() - state.callStartTime) / 1000);
+  return 0;
+}
+
 $("btnYesAnswered").addEventListener("click", async () => {
+  const duration = getCallDuration();
   const c = findCustomer(state.selectedCustomerId);
   let updatedTags = c ? [...(c.tags || [])] : [];
   const systemDoneTag = state.lang === "ar" ? "تم" : "Done";
@@ -685,13 +786,30 @@ $("btnYesAnswered").addEventListener("click", async () => {
   }
   await updateDoc(doc(customersCol(), state.selectedCustomerId), { 
     answered: true,
+    callDuration: duration,
     tags: updatedTags 
   });
   openAfterAnswerScreen(state.selectedCustomerId);
 });
 
 $("btnNoAnswered").addEventListener("click", async () => {
-  await updateDoc(doc(customersCol(), state.selectedCustomerId), { answered: false });
+  const duration = getCallDuration();
+  await updateDoc(doc(customersCol(), state.selectedCustomerId), { 
+    answered: false,
+    callDuration: duration
+  });
+  showScreen("screen-customers");
+});
+
+$("btnUselessCall").addEventListener("click", async () => {
+  const duration = getCallDuration();
+  await updateDoc(doc(customersCol(), state.selectedCustomerId), { 
+    answered: true,
+    isUseless: true,
+    callDuration: duration,
+    tags: [LANG_DICT[state.lang].uselessCallLbl],
+    updatedAt: serverTimestamp()
+  });
   showScreen("screen-customers");
 });
 
@@ -808,8 +926,8 @@ async function renderReports() {
   try {
     const currentCounts = {};
     state.tags.forEach(t => currentCounts[t.name] = 0);
-    // دمج فرز الأوسمة التلقائية مثل تم و Done في الإحصائيات
     currentCounts[state.lang === "ar" ? "تم" : "Done"] = 0;
+    currentCounts[LANG_DICT[state.lang].uselessCallLbl] = 0;
 
     state.customers.forEach(c => (c.tags || []).forEach(t => { currentCounts[t] = (currentCounts[t] || 0) + 1; }));
 
@@ -834,7 +952,7 @@ async function renderReports() {
       branchCounts[branch.name] = counts;
     }
 
-    const allTags = Array.from(new Set([...state.tags.map(t => t.name), "تم", "Done"]));
+    const allTags = Array.from(new Set([...state.tags.map(t => t.name), "تم", "Done", LANG_DICT[state.lang].uselessCallLbl]));
     if (!allTags.length || !state.branches.length) {
       tableBox.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].insufficientData}</p>`;
       return;
@@ -853,7 +971,7 @@ async function renderReports() {
   }
 }
 
-// قيود أبعاد المتصفح لمنع التشتت الميداني
+// قيود أبعاد المتصفح لمنع التشتت
 document.addEventListener("wheel", (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && ["+", "-", "=", "0"].includes(e.key)) e.preventDefault();
