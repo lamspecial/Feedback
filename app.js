@@ -142,7 +142,22 @@ const LANG_DICT = {
     bulkImportNoValid: "No valid name/phone pairs were detected.",
     bulkImportPreviewText: "{count} valid entries detected",
     bulkImportResultText: "{added} customers added",
-    bulkImportDuplicateText: " · {dup} duplicates skipped"
+    bulkImportDuplicateText: " · {dup} duplicates skipped",
+    navAllCalls: "All Calls",
+    addNewBranchLabel: "Branch Management",
+    filterByBranchLabel: "Branch:",
+    filterByTagLabel: "Filter by Tags:",
+    viewPendingBtn: "View",
+    pendingTasksTitle: "Pending Tasks",
+    kpiTotalCustomers: "Total Customers",
+    kpiTotalCalled: "Called",
+    kpiTotalAnswered: "Answered",
+    kpiPending: "Pending",
+    responseRateTitle: "Response Rate",
+    answeredLegend: "Answered",
+    noAnswerLegend: "No Answer",
+    notCalledLegend: "Not Called",
+    allBranchesChip: "All"
   },
   ar: {
     selectBranchHeader: "اختر الفرع",
@@ -253,7 +268,22 @@ const LANG_DICT = {
     bulkImportNoValid: "لم يتم رصد أي أزواج اسم/رقم صالحة.",
     bulkImportPreviewText: "تم رصد {count} إدخال صالح",
     bulkImportResultText: "تمت إضافة {added} عميل",
-    bulkImportDuplicateText: " · تم تخطي {dup} مكرر"
+    bulkImportDuplicateText: " · تم تخطي {dup} مكرر",
+    navAllCalls: "كل المكالمات",
+    addNewBranchLabel: "إدارة الفروع",
+    filterByBranchLabel: "الفرع:",
+    filterByTagLabel: "تصفية بالأوسمة:",
+    viewPendingBtn: "عرض",
+    pendingTasksTitle: "مهام معلقة",
+    kpiTotalCustomers: "إجمالي العملاء",
+    kpiTotalCalled: "تم الاتصال",
+    kpiTotalAnswered: "ردوا",
+    kpiPending: "معلقة",
+    responseRateTitle: "نسبة الاستجابة",
+    answeredLegend: "أجابوا",
+    noAnswerLegend: "لم يردوا",
+    notCalledLegend: "لم يُتصل بهم",
+    allBranchesChip: "الكل"
   }
 };
 
@@ -295,6 +325,13 @@ function showScreen(id) {
     document.querySelectorAll(".analytics-pane").forEach(p => p.classList.remove("active"));
     $("analyticsTabs")?.querySelector('[data-tab="overview"]')?.classList.add("active");
     $("analyticsPane-overview")?.classList.add("active");
+  }
+  if (id === "screen-allcalls") {
+    populateAllCallsFilters();
+    renderAllCallsList();
+  }
+  if (id === "screen-branch") {
+    renderBranchPendingBanner();
   }
 }
 
@@ -388,7 +425,7 @@ document.querySelectorAll(".btn-driving-toggle").forEach(btn => {
 document.querySelectorAll(".bottom-nav .nav-item").forEach(btn => {
   btn.addEventListener("click", () => {
     const target = btn.dataset.target;
-    if ((target === "screen-customers" || target === "screen-reports") && !state.currentBranchId) {
+    if (target === "screen-customers" && !state.currentBranchId) {
       showToast(LANG_DICT[state.lang].branchSelectRequired);
       return;
     }
@@ -409,6 +446,7 @@ function listenBranches() {
     state.branches = [];
     snap.forEach(d => state.branches.push({ id: d.id, ...d.data() }));
     renderBranches();
+    renderBranchPendingBanner();
   }, err => { showToast(LANG_DICT[state.lang].toastLoadBranchErr); });
 }
 
@@ -424,14 +462,16 @@ function renderBranches() {
   });
 }
 
-$("btnNewBranch").addEventListener("click", async () => {
+async function createNewBranch() {
   const name = prompt(LANG_DICT[state.lang].promptNewBranch);
   if (!name || !name.trim()) return;
   try {
     await addDoc(collection(db, "branches"), { name: name.trim(), createdAt: serverTimestamp() });
     showToast(LANG_DICT[state.lang].toastBranchSuccess);
   } catch (err) { showToast(LANG_DICT[state.lang].toastBranchFailed); }
-});
+}
+$("btnNewBranch").addEventListener("click", createNewBranch);
+$("btnNewBranchSettings")?.addEventListener("click", createNewBranch);
 
 function openBranch(id, name) {
   state.currentBranchId = id;
@@ -456,6 +496,37 @@ $("btnBackToBranches").addEventListener("click", () => {
   $("branchManageDivider").style.display = "none";
 
   showScreen("screen-branch");
+  renderBranchPendingBanner();
+});
+
+$("btnShowPendingInBranch")?.addEventListener("click", async () => {
+  const panel = $("branchPendingPanel");
+  panel.style.display = "block";
+  const listEl = $("branchPendingList");
+  listEl.innerHTML = `<p style="padding:10px; color:var(--text-dim); text-align:center;">${LANG_DICT[state.lang].analyzingReports}</p>`;
+  try {
+    const all = await fetchAllCustomersAcrossBranches();
+    const pending = all.filter(c => c.called && !c.answered && !c.isUseless);
+    pending.sort((a, b) => (b.lastCallAt?.seconds || 0) - (a.lastCallAt?.seconds || 0));
+    if (!pending.length) {
+      listEl.innerHTML = `<p style="padding:10px; color:var(--text-dim); text-align:center;">${LANG_DICT[state.lang].noPendingTasks}</p>`;
+      return;
+    }
+    listEl.innerHTML = pending.map(c => `
+      <div class="customer-card" style="margin-bottom:8px;">
+        <div class="customer-card-top">
+          <div><p class="customer-name">${escapeHtml(c.name||"N/A")}</p><p class="customer-phone">${escapeHtml(c.phone||"")}</p></div>
+          <span class="mini-branch-badge">${escapeHtml(c.branchName||"")}</span>
+        </div>
+        <div class="customer-card-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;margin-top:4px;">
+          <a class="card-action-btn card-action-call" href="tel:${escapeHtml(c.phone||"")}">${ICONS.call} ${LANG_DICT[state.lang].callBtnText}</a>
+        </div>
+      </div>`).join("");
+  } catch(e) {}
+});
+
+$("btnClosePendingPanel")?.addEventListener("click", () => {
+  $("branchPendingPanel").style.display = "none";
 });
 
 $("btnRenameBranch").addEventListener("click", async () => {
@@ -613,15 +684,44 @@ $("btnBackspace").addEventListener("pointerdown", (e) => {
 
 $("btnPastePhone").addEventListener("pointerdown", async (e) => {
   e.preventDefault();
+  // محاولة لصق من الحافظة مع fallback لحقل النص
   try {
-    const text = await navigator.clipboard.readText();
-    const nums = text.replace(/[^\d+]/g, "");
-    if (nums) {
-      dialBuffer += nums;
-      $("customerPhone").value = dialBuffer;
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      const text = await navigator.clipboard.readText();
+      const nums = text.replace(/[^\d+]/g, "");
+      if (nums) {
+        dialBuffer += nums;
+        $("customerPhone").value = dialBuffer;
+        return;
+      }
     }
+    // fallback: نفتح input مخفي للصق
+    const tmp = document.createElement("input");
+    tmp.style.cssText = "position:fixed;top:-100px;left:-100px;opacity:0;";
+    document.body.appendChild(tmp);
+    tmp.focus();
+    const pasted = document.execCommand("paste");
+    const val = tmp.value;
+    document.body.removeChild(tmp);
+    if (val) {
+      const nums = val.replace(/[^\d+]/g, "");
+      if (nums) { dialBuffer += nums; $("customerPhone").value = dialBuffer; return; }
+    }
+    showToast(state.lang === "ar" ? "اضغط مطولاً للصق" : "Long press to paste");
   } catch(err) {
-    showToast(state.lang === "ar" ? "فشل اللصق" : "Paste failed");
+    showToast(state.lang === "ar" ? "اضغط مطولاً للصق" : "Long press to paste");
+  }
+});
+// دعم اللصق بالضغط المطوّل على حقل الرقم
+$("customerPhone").addEventListener("contextmenu", (e) => { e.preventDefault(); });
+document.addEventListener("paste", (e) => {
+  if (document.activeElement === $("customerPhone") || document.activeElement?.closest("#screen-add-customer")) {
+    const text = (e.clipboardData || window.clipboardData).getData("text");
+    if (text) {
+      const nums = text.replace(/[^\d+]/g, "");
+      if (nums) { dialBuffer += nums; $("customerPhone").value = dialBuffer; }
+      e.preventDefault();
+    }
   }
 });
 
@@ -974,31 +1074,73 @@ async function renderReports() {
   tableBox.innerHTML = "";
 
   try {
-    const currentCounts = {};
-    state.tags.forEach(t => currentCounts[t.name] = 0);
-    currentCounts[state.lang === "ar" ? "تم" : "Done"] = 0;
-    currentCounts[LANG_DICT[state.lang].uselessCallLbl] = 0;
+    // جلب بيانات الفرع المختار أو كل الفروع
+    let allData = [];
+    const branchesToShow = state_analyticsBranchId
+      ? state.branches.filter(b => b.id === state_analyticsBranchId)
+      : state.branches;
 
-    state.customers.forEach(c => (c.tags || []).forEach(t => { currentCounts[t] = (currentCounts[t] || 0) + 1; }));
+    for (const branch of branchesToShow) {
+      const snap = await getDocs(collection(db, "branches", branch.id, "customers"));
+      snap.forEach(d => allData.push({ branchId: branch.id, branchName: branch.name, ...d.data() }));
+    }
 
-    const maxCurrent = Math.max(1, ...Object.values(currentCounts));
-    currentBox.innerHTML = Object.keys(currentCounts).length
-      ? Object.entries(currentCounts).map(([tag, count]) => `
-        <div class="report-bar-row">
-          <span class="report-bar-label">${escapeHtml(tag)}</span>
-          <div class="report-bar-track"><div class="report-bar-fill" style="width:${(count / maxCurrent) * 100}%"></div></div>
-          <span class="report-bar-count">${count}</span>
-        </div>`).join("")
+    // ===== KPI Cards =====
+    const totalCust = allData.length;
+    const totalCalled = allData.filter(c => c.called).length;
+    const totalAnswered = allData.filter(c => c.answered).length;
+    const totalPending = allData.filter(c => c.called && !c.answered && !c.isUseless).length;
+
+    if ($("kpiTotalCustomers")) $("kpiTotalCustomers").textContent = totalCust;
+    if ($("kpiTotalCalled")) $("kpiTotalCalled").textContent = totalCalled;
+    if ($("kpiTotalAnswered")) $("kpiTotalAnswered").textContent = totalAnswered;
+    if ($("kpiPending")) $("kpiPending").textContent = totalPending;
+
+    // ===== Response Rate =====
+    const rate = totalCust > 0 ? Math.round((totalAnswered / totalCust) * 100) : 0;
+    if ($("responseRatePct")) $("responseRatePct").textContent = rate + "%";
+    if ($("responseRateFill")) $("responseRateFill").style.width = rate + "%";
+
+    // Stacked bar
+    const notCalled = totalCust - totalCalled;
+    const noAnswer = totalCalled - totalAnswered;
+    const stackedBar = $("stackedBar");
+    if (stackedBar && totalCust > 0) {
+      const pAnswered = (totalAnswered / totalCust) * 100;
+      const pNoAnswer = (noAnswer / totalCust) * 100;
+      const pNotCalled = (notCalled / totalCust) * 100;
+      stackedBar.innerHTML = `
+        <div class="stacked-bar-seg" style="width:${pAnswered}%;background:var(--success);" title="${LANG_DICT[state.lang].answeredLegend}:${totalAnswered}"></div>
+        <div class="stacked-bar-seg" style="width:${pNoAnswer}%;background:var(--warning);" title="${LANG_DICT[state.lang].noAnswerLegend}:${noAnswer}"></div>
+        <div class="stacked-bar-seg" style="width:${pNotCalled}%;background:var(--surface-2);" title="${LANG_DICT[state.lang].notCalledLegend}:${notCalled}"></div>`;
+    }
+
+    // ===== Tag Distribution =====
+    const tagCounts = {};
+    state.tags.forEach(t => tagCounts[t.name] = 0);
+    tagCounts[state.lang === "ar" ? "تم" : "Done"] = 0;
+    tagCounts[LANG_DICT[state.lang].uselessCallLbl] = 0;
+    allData.forEach(c => (c.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
+
+    const maxCount = Math.max(1, ...Object.values(tagCounts));
+    currentBox.innerHTML = Object.keys(tagCounts).length
+      ? Object.entries(tagCounts).sort((a,b) => b[1]-a[1]).map(([tag, count]) => {
+          const tagObj = state.tags.find(t => t.name === tag);
+          const colorClass = tagObj ? tagObj.type : (tag === "Done" || tag === "تم" ? "done" : "");
+          return `<div class="report-bar-row">
+            <span class="report-bar-label">${escapeHtml(tag)}</span>
+            <div class="report-bar-track"><div class="report-bar-fill ${colorClass}" style="width:${(count / maxCount) * 100}%"></div></div>
+            <span class="report-bar-count">${count}</span>
+          </div>`;
+        }).join("")
       : `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].noStatsAvailable}</p>`;
 
+    // ===== Cross-branch comparison table =====
     const branchCounts = {};
     for (const branch of state.branches) {
       const snap = await getDocs(collection(db, "branches", branch.id, "customers"));
       const counts = {};
-      snap.forEach(d => {
-        const data = d.data();
-        (data.tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; });
-      });
+      snap.forEach(d => { (d.data().tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; }); });
       branchCounts[branch.name] = counts;
     }
 
@@ -1011,7 +1153,8 @@ async function renderReports() {
     let tableHtml = `<table class="report-table"><thead><tr><th>${LANG_DICT[state.lang].fieldBranchColHeader}</th>${allTags.map(t => `<th>${escapeHtml(t)}</th>`).join("")}</tr></thead><tbody>`;
     state.branches.forEach(branch => {
       const counts = branchCounts[branch.name] || {};
-      tableHtml += `<tr><td><b>${escapeHtml(branch.name)}</b></td>${allTags.map(t => `<td>${counts[t] || 0}</td>`).join("")}</tr>`;
+      const isSelected = state_analyticsBranchId === branch.id;
+      tableHtml += `<tr${isSelected ? ' style="background:rgba(46,125,255,0.1);"' : ""}><td><b>${escapeHtml(branch.name)}</b></td>${allTags.map(t => `<td>${counts[t] || 0}</td>`).join("")}</tr>`;
     });
     tableHtml += `</tbody></table>`;
     tableBox.innerHTML = tableHtml;
@@ -1019,6 +1162,25 @@ async function renderReports() {
     console.error(err);
     showToast(LANG_DICT[state.lang].loadReportsErr);
   }
+}
+
+// عرض المهام المعلقة في تبويب الفروع
+async function renderBranchPendingBanner() {
+  try {
+    const all = await fetchAllCustomersAcrossBranches();
+    const pending = all.filter(c => c.called && !c.answered && !c.isUseless);
+    const banner = $("branchPendingBanner");
+    const countEl = $("branchPendingCount");
+    if (!banner) return;
+    if (pending.length > 0) {
+      banner.style.display = "block";
+      countEl.textContent = (state.lang === "ar")
+        ? `${pending.length} مهمة معلقة`
+        : `${pending.length} pending task${pending.length > 1 ? "s" : ""}`;
+    } else {
+      banner.style.display = "none";
+    }
+  } catch(e) {}
 }
 
 // ===================== تبويبات صفحة التحليلات: كل المكالمات + المهام المعلقة =====================
@@ -1031,7 +1193,7 @@ document.querySelectorAll(".analytics-tab").forEach(tab => {
     document.querySelectorAll(".analytics-pane").forEach(p => p.classList.remove("active"));
     tab.classList.add("active");
     $("analyticsPane-" + tab.dataset.tab)?.classList.add("active");
-    if (tab.dataset.tab === "calls") renderCallsList();
+    if (tab.dataset.tab === "allcalls") { populateCallsTagFilter(); renderCallsList(); }
     if (tab.dataset.tab === "pending") renderPendingTasks();
   });
 });
@@ -1048,27 +1210,90 @@ async function fetchAllCustomersAcrossBranches() {
   return all;
 }
 
+// حالة الأوسمة المختارة للفلتر
+const state_callsSelectedTags = new Set();
+// حالة الفرع المختار في التحليلات
+let state_analyticsBranchId = "";
+
 function populateAnalyticsFilters() {
-  const branchSel = $("callsFilterBranch");
-  const tagSel = $("callsFilterTag");
-  if (!branchSel || !tagSel) return;
+  // بناء chips الفروع في صفحة التحليلات
+  const chipsWrap = $("analyticsBranchChips");
+  if (chipsWrap) {
+    chipsWrap.innerHTML = "";
+    // كل الفروع
+    const allChip = document.createElement("button");
+    allChip.className = "branch-chip" + (!state_analyticsBranchId ? " active" : "");
+    allChip.textContent = LANG_DICT[state.lang].allBranchesChip || "All";
+    allChip.addEventListener("click", () => {
+      state_analyticsBranchId = "";
+      chipsWrap.querySelectorAll(".branch-chip").forEach(c => c.classList.remove("active"));
+      allChip.classList.add("active");
+      renderReports();
+    });
+    chipsWrap.appendChild(allChip);
 
-  const curBranch = branchSel.value;
-  const curTag = tagSel.value;
+    state.branches.forEach(b => {
+      const chip = document.createElement("button");
+      chip.className = "branch-chip" + (state_analyticsBranchId === b.id ? " active" : "");
+      chip.textContent = b.name;
+      chip.addEventListener("click", () => {
+        state_analyticsBranchId = b.id;
+        chipsWrap.querySelectorAll(".branch-chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        renderReports();
+      });
+      chipsWrap.appendChild(chip);
+    });
+  }
+}
 
-  branchSel.innerHTML = `<option value="">${LANG_DICT[state.lang].allBranchesOption}</option>` +
-    state.branches.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
-
+function populateCallsTagFilter() {
+  const wrap = $("callsTagFilterChips");
+  if (!wrap) return;
+  wrap.innerHTML = "";
   const tagNames = new Set(state.tags.map(t => t.name));
   tagNames.add(state.lang === "ar" ? "تم" : "Done");
   tagNames.add(LANG_DICT[state.lang].uselessCallLbl);
-
-  tagSel.innerHTML = `<option value="">${LANG_DICT[state.lang].allTagsOption}</option>` +
-    Array.from(tagNames).map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
-
-  branchSel.value = curBranch;
-  tagSel.value = curTag;
+  Array.from(tagNames).forEach(t => {
+    const chip = document.createElement("button");
+    chip.className = "tag-filter-chip" + (state_callsSelectedTags.has(t) ? " active" : "");
+    chip.textContent = t;
+    chip.addEventListener("click", () => {
+      if (state_callsSelectedTags.has(t)) { state_callsSelectedTags.delete(t); chip.classList.remove("active"); }
+      else { state_callsSelectedTags.add(t); chip.classList.add("active"); }
+      renderCallsList();
+    });
+    wrap.appendChild(chip);
+  });
 }
+
+function populateAllCallsFilters() {
+  const branchSel = $("allCallsFilterBranch");
+  if (branchSel) {
+    branchSel.innerHTML = `<option value="">${LANG_DICT[state.lang].allBranchesOption}</option>` +
+      state.branches.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
+    branchSel.addEventListener("change", renderAllCallsList);
+  }
+  const wrap = $("allCallsTagFilterChips");
+  if (wrap) {
+    wrap.innerHTML = "";
+    const tagNames = new Set(state.tags.map(t => t.name));
+    tagNames.add(state.lang === "ar" ? "تم" : "Done");
+    tagNames.add(LANG_DICT[state.lang].uselessCallLbl);
+    Array.from(tagNames).forEach(t => {
+      const chip = document.createElement("button");
+      chip.className = "tag-filter-chip" + (state_allCallsSelectedTags.has(t) ? " active" : "");
+      chip.textContent = t;
+      chip.addEventListener("click", () => {
+        if (state_allCallsSelectedTags.has(t)) { state_allCallsSelectedTags.delete(t); chip.classList.remove("active"); }
+        else { state_allCallsSelectedTags.add(t); chip.classList.add("active"); }
+        renderAllCallsList();
+      });
+      wrap.appendChild(chip);
+    });
+  }
+}
+const state_allCallsSelectedTags = new Set();
 
 function callStatusText(c) {
   if (c.isUseless) return LANG_DICT[state.lang].uselessCallLbl;
@@ -1078,18 +1303,55 @@ function callStatusText(c) {
 }
 
 // قائمة جميع المكالمات مع إمكانية التصفية حسب الوسم أو الفرع أو الاثنين معاً
+async function renderAllCallsList() {
+  const box = $("allCallsListBox");
+  if (!box) return;
+  box.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].analyzingReports}</p>`;
+  try {
+    const all = await fetchAllCustomersAcrossBranches();
+    const branchFilter = $("allCallsFilterBranch")?.value || "";
+    let calls = all.filter(c => c.called);
+    if (branchFilter) calls = calls.filter(c => c.branchId === branchFilter);
+    if (state_allCallsSelectedTags.size > 0) {
+      calls = calls.filter(c => Array.from(state_allCallsSelectedTags).some(t => (c.tags || []).includes(t)));
+    }
+    calls.sort((a, b) => { const ta = a.lastCallAt?.seconds || 0, tb = b.lastCallAt?.seconds || 0; return tb - ta; });
+    if (!calls.length) {
+      box.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:30px;">${LANG_DICT[state.lang].noCallsFound}</p>`;
+      return;
+    }
+    box.innerHTML = calls.map(c => {
+      const tagsHtml = (c.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
+      const statusClass = c.answered ? "answered" : (c.called ? "called" : "not-called");
+      return `<div class="customer-card">
+        <div class="customer-card-top">
+          <div>
+            <p class="customer-name">${escapeHtml(c.name || "N/A")}</p>
+            <p class="customer-phone">${escapeHtml(c.phone || "")}</p>
+          </div>
+          <span class="mini-branch-badge">${escapeHtml(c.branchName || "")}</span>
+        </div>
+        <span class="status-badge ${statusClass}">${callStatusText(c)}</span>
+        ${c.callDuration ? `<span style="font-size:11px; color:var(--text-dim); margin-inline-start:8px;">⏱ ${c.callDuration}s</span>` : ""}
+        <div class="customer-tags">${tagsHtml}</div>
+      </div>`;
+    }).join("");
+  } catch (err) {
+    console.error(err);
+    box.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].loadReportsErr}</p>`;
+  }
+}
+
 async function renderCallsList() {
   const box = $("callsListBox");
   if (!box) return;
   box.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].analyzingReports}</p>`;
   try {
     const all = await fetchAllCustomersAcrossBranches();
-    const branchFilter = $("callsFilterBranch").value;
-    const tagFilter = $("callsFilterTag").value;
-
     let calls = all.filter(c => c.called);
-    if (branchFilter) calls = calls.filter(c => c.branchId === branchFilter);
-    if (tagFilter) calls = calls.filter(c => (c.tags || []).includes(tagFilter));
+    if (state_callsSelectedTags.size > 0) {
+      calls = calls.filter(c => Array.from(state_callsSelectedTags).some(t => (c.tags || []).includes(t)));
+    }
 
     calls.sort((a, b) => {
       const ta = a.lastCallAt?.seconds || 0, tb = b.lastCallAt?.seconds || 0;
@@ -1123,8 +1385,7 @@ async function renderCallsList() {
   }
 }
 
-$("callsFilterBranch")?.addEventListener("change", renderCallsList);
-$("callsFilterTag")?.addEventListener("change", renderCallsList);
+// listeners moved to populateAllCallsFilters
 
 // تبويب المهام المعلقة: أرقام العملاء الذين تم الاتصال بهم ولم يردوا
 async function renderPendingTasks() {

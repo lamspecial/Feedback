@@ -8,6 +8,7 @@
 </head>
 <body>
 
+<!-- ===================== شاشة الفروع ===================== -->
 <section id="screen-branch" class="screen active">
   <header class="top-bar">
     <div style="display:flex; gap:10px;">
@@ -19,14 +20,32 @@
       </button>
     </div>
     <h2 data-i18n="selectBranchHeader">Select Branch</h2>
-    <span style="width: 86px;"></span>
+    <!-- زر إضافة فرع جديد في الهيدر -->
+    <button id="btnNewBranch" class="icon-btn" title="Create New Branch" style="width:40px;height:40px;background:var(--primary);border-radius:50%;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;">+</button>
   </header>
-  <div class="branch-list" id="branchList"></div>
-  <div class="branch-actions" style="padding:16px;">
-    <button id="btnNewBranch" class="btn-secondary btn-xl" data-i18n="createNewBranchBtn">Create New Branch</button>
+
+  <!-- مهام معلقة مدمجة في تبويب الفروع -->
+  <div id="branchPendingBanner" class="branch-pending-banner" style="display:none;">
+    <div class="branch-pending-inner">
+      <span class="branch-pending-icon">⏳</span>
+      <span id="branchPendingCount" class="branch-pending-text"></span>
+      <button id="btnShowPendingInBranch" class="branch-pending-btn" data-i18n="viewPendingBtn">View</button>
+    </div>
   </div>
+
+  <!-- لوحة المهام المعلقة داخل تبويب الفروع -->
+  <div id="branchPendingPanel" class="branch-pending-panel" style="display:none;">
+    <div class="branch-pending-panel-header">
+      <span data-i18n="pendingTasksTitle">Pending Tasks</span>
+      <button id="btnClosePendingPanel" class="icon-btn" style="font-size:18px;">✕</button>
+    </div>
+    <div id="branchPendingList" class="branch-pending-list"></div>
+  </div>
+
+  <div class="branch-list" id="branchList"></div>
 </section>
 
+<!-- ===================== شاشة العملاء ===================== -->
 <section id="screen-customers" class="screen">
   <header class="top-bar">
     <button id="btnBackToBranches" class="icon-btn" data-i18n="backBtn">‹ Back</button>
@@ -46,6 +65,7 @@
   <button id="btnAddCustomerFab" class="fab-btn">+</button>
 </section>
 
+<!-- ===================== شاشة إضافة عميل ===================== -->
 <section id="screen-add-customer" class="screen">
   <header class="top-bar">
     <button id="btnCloseAddCustomer" class="icon-btn" data-i18n="cancelBtn">Cancel</button>
@@ -89,6 +109,7 @@
   </div>
 </section>
 
+<!-- ===================== شاشة تفاصيل العميل ===================== -->
 <section id="screen-customer-detail" class="screen">
   <header class="top-bar">
     <button id="btnCloseDetail" class="icon-btn" data-i18n="closeBtn">Close</button>
@@ -131,65 +152,55 @@
   </div>
 </section>
 
+<!-- ===================== شاشة الاتصال ===================== -->
 <section id="screen-call" class="screen">
   <div class="call-screen-content">
     <div class="call-avatar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     </div>
-    <h2 id="callName" class="call-screen-name">Customer Name</h2>
-    <p id="callPhone" class="call-screen-phone">05xxxxxxx</p>
-    <p id="callStatus" class="call-screen-status">Ready for call</p>
-
+    <p class="call-screen-name" id="callName">Customer Name</p>
+    <p class="call-screen-phone" id="callPhone">05xxxxxxx</p>
+    <p class="call-screen-status" id="callStatus">Ready</p>
     <div class="call-controls">
-      <a id="btnDial" href="#" class="call-btn btn-start-dial">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+      <a id="btnDial" href="tel:" class="call-btn btn-start-dial">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:32px;height:32px;"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
       </a>
-      <button id="btnAnswered" class="call-btn btn-end-call" style="display:none;" data-i18n="endCallSysBtn">End Call in System</button>
     </div>
-
     <div id="postCallActions" class="post-call-box" style="display:none;">
-      <p data-i18n="customerAnsweredQuestion">Did the customer answer the call?</p>
-      <div style="display:flex; flex-direction:column; gap:12px; width:100%;">
-        <div style="display:flex; gap:12px; width:100%;">
-          <button id="btnYesAnswered" class="btn-primary" style="background:var(--success); flex:1;" data-i18n="yesAnsweredBtn">Yes, Answered</button>
-          <button id="btnNoAnswered" class="btn-secondary" style="flex:1;" data-i18n="noAnsweredBtn">No, Didn't Answer</button>
-        </div>
-        <button id="btnUselessCall" class="btn-secondary" style="color:var(--danger); border-color:var(--danger); width:100%;">
-          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-          <span data-i18n="uselessCallBtn">Useless Call</span>
-        </button>
+      <p data-i18n="customerAnsweredQuestion">Did the customer answer?</p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button id="btnYesAnswered" class="btn-primary" data-i18n="yesAnsweredBtn">Yes, Answered</button>
+        <button id="btnNoAnswered" class="btn-secondary" data-i18n="noAnsweredBtn">No, Didn't Answer</button>
+        <button id="btnUselessCall" class="btn-secondary text-danger" data-i18n="uselessCallBtn">Useless Call</button>
       </div>
     </div>
-    
-    <button id="btnEndCallScreen" class="btn-text" style="margin-top: 30px;" data-i18n="cancelReturnBtn">Cancel & Return</button>
+    <button id="btnAnswered" class="btn-secondary" style="display:none; margin-top:20px;" data-i18n="endCallSysBtn">End Call in System</button>
+    <button id="btnEndCallScreen" class="btn-text" style="margin-top:16px;" data-i18n="cancelReturnBtn">Cancel & Return</button>
   </div>
 </section>
 
+<!-- ===================== شاشة ما بعد الإجابة ===================== -->
 <section id="screen-after-answer" class="screen">
   <header class="top-bar">
+    <span style="width:40px;"></span>
     <h2 data-i18n="successfulCallHeader">Successful Call Summary</h2>
+    <span style="width:40px;"></span>
   </header>
   <div class="form-body">
-    <div class="detail-card-header">
-      <h3 id="afterAnswerName">Customer Name</h3>
-      <p style="color: var(--success); font-weight: bold; font-size:13px; margin-top:5px;" data-i18n="tagAutoAppliedText">✓ 'Done' tag automatically applied</p>
-    </div>
-
+    <p id="afterAnswerName" style="font-weight:700; font-size:18px; margin-bottom:4px;"></p>
+    <p style="font-size:13px; color:var(--success); margin-bottom:16px;" data-i18n="tagAutoAppliedText">✓ 'Done' tag auto-applied</p>
     <div class="input-group">
       <label data-i18n="positiveFeedbackLabel">Positive points mentioned by customer</label>
-      <textarea id="afterAnswerPositiveComment" class="positive-comment-box" rows="3" placeholder="Enter praises or positive nodes..."></textarea>
+      <textarea id="afterAnswerPositiveComment" class="positive-comment-box" rows="3"></textarea>
     </div>
-
     <div class="input-group">
       <label data-i18n="improvementFeedbackLabel">Improvement points indicated by customer</label>
-      <textarea id="afterAnswerImprovementComment" class="improvement-comment-box" rows="3" placeholder="Enter weaknesses or structural notes..."></textarea>
+      <textarea id="afterAnswerImprovementComment" class="improvement-comment-box" rows="3"></textarea>
     </div>
-
     <div class="input-group">
       <label data-i18n="adjustTagsLabel">Modify Additional Tags</label>
       <div id="afterAnswerTagsWrap"></div>
     </div>
-
     <div class="audio-section">
       <button id="btnRecord2" class="btn-record">
         <span id="recordIcon2"></span> <span id="recordLabel2" data-i18n="recordAudioSummaryLabel">Record Audio Summary</span>
@@ -197,11 +208,11 @@
       <span id="recordTimer2" class="record-timer"></span>
       <audio id="recordPlayback2" controls style="display:none; width:100%; margin-top:10px;"></audio>
     </div>
-
-    <button id="btnSaveAfterAnswer" class="btn-primary btn-xl" style="margin-top:20px;" data-i18n="saveFinishBtn">Save & Finish Task</button>
+    <button id="btnSaveAfterAnswer" class="btn-primary btn-xl" style="margin-top:20px;" data-i18n="saveFinishBtn">Save & Finish</button>
   </div>
 </section>
 
+<!-- ===================== شاشة التحليلات ===================== -->
 <section id="screen-reports" class="screen">
   <header class="top-bar">
     <span style="width: 40px;"></span>
@@ -211,31 +222,100 @@
 
   <div class="analytics-tabs" id="analyticsTabs">
     <button class="analytics-tab active" data-tab="overview" data-i18n="analyticsOverviewTab">Overview</button>
-    <button class="analytics-tab" data-tab="calls" data-i18n="analyticsCallsTab">All Calls</button>
-    <button class="analytics-tab" data-tab="pending" data-i18n="analyticsPendingTab">Pending Tasks</button>
+    <button class="analytics-tab" data-tab="allcalls" data-i18n="analyticsCallsTab">All Calls</button>
+    <button class="analytics-tab" data-tab="pending" data-i18n="analyticsPendingTab">Pending</button>
   </div>
 
   <div class="form-body" style="padding-bottom: 80px;">
 
+    <!-- تبويب النظرة العامة مع تحليلات مرئية لجميع الفروع -->
     <div id="analyticsPane-overview" class="analytics-pane active">
-      <div class="report-box">
-        <h3 style="font-size:14px; margin-bottom:12px;" data-i18n="tagDistributionTitle">Current Branch Tag Metrics</h3>
+
+      <!-- فلتر الفرع في شاشة التحليلات -->
+      <div class="analytics-branch-filter">
+        <label class="analytics-filter-label" data-i18n="filterByBranchLabel">Branch:</label>
+        <div class="analytics-branch-chips" id="analyticsBranchChips">
+          <!-- يتم ملؤها ديناميكياً -->
+        </div>
+      </div>
+
+      <!-- مؤشرات KPI المرئية -->
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="kpi-value" id="kpiTotalCustomers">0</div>
+          <div class="kpi-label" data-i18n="kpiTotalCustomers">Total Customers</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+          </div>
+          <div class="kpi-value" id="kpiTotalCalled">0</div>
+          <div class="kpi-label" data-i18n="kpiTotalCalled">Called</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="kpi-value" id="kpiTotalAnswered">0</div>
+          <div class="kpi-label" data-i18n="kpiTotalAnswered">Answered</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-red">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="kpi-value" id="kpiPending">0</div>
+          <div class="kpi-label" data-i18n="kpiPending">Pending</div>
+        </div>
+      </div>
+
+      <!-- مؤشر نسبة الاستجابة المرئي -->
+      <div class="report-box" style="margin-top:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="font-size:14px;" data-i18n="responseRateTitle">Response Rate</h3>
+          <span id="responseRatePct" style="font-size:20px; font-weight:800; color:var(--success);">0%</span>
+        </div>
+        <div class="response-rate-track">
+          <div class="response-rate-fill" id="responseRateFill" style="width:0%;"></div>
+        </div>
+        <div class="response-rate-legend">
+          <span><span class="legend-dot" style="background:var(--success);"></span><span data-i18n="answeredLegend">Answered</span></span>
+          <span><span class="legend-dot" style="background:var(--warning);"></span><span data-i18n="noAnswerLegend">No Answer</span></span>
+          <span><span class="legend-dot" style="background:var(--surface-2);"></span><span data-i18n="notCalledLegend">Not Called</span></span>
+        </div>
+        <!-- شريط مركب -->
+        <div class="stacked-bar" id="stackedBar" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- توزيع الأوسمة -->
+      <div class="report-box" style="margin-top:12px;">
+        <h3 style="font-size:14px; margin-bottom:12px;" data-i18n="tagDistributionTitle">Tag Distribution</h3>
         <div id="reportTagsCurrentBranch"></div>
       </div>
-      <div class="report-box" style="margin-top:20px;">
-        <h3 style="font-size:14px; margin-bottom:12px;" data-i18n="branchComparisonTitle">Cross-Branch Comparative Grid</h3>
+
+      <!-- جدول مقارنة الفروع -->
+      <div class="report-box" style="margin-top:12px;">
+        <h3 style="font-size:14px; margin-bottom:12px;" data-i18n="branchComparisonTitle">Cross-Branch Comparison</h3>
         <div class="report-table-wrap" id="reportBranchComparison"></div>
       </div>
     </div>
 
-    <div id="analyticsPane-calls" class="analytics-pane">
-      <div class="filters-row">
+    <!-- تبويب كل المكالمات - تبويب مستقل بين التحليلات والعملاء -->
+    <div id="analyticsPane-allcalls" class="analytics-pane">
+      <div class="filters-row" style="flex-direction:column; gap:10px;">
         <select id="callsFilterBranch" class="form-select"></select>
-        <select id="callsFilterTag" class="form-select"></select>
+        <!-- فلتر الأوسمة المتعددة -->
+        <div class="multi-tag-filter-wrap">
+          <div class="multi-tag-filter-label" data-i18n="filterByTagLabel">Filter by Tags:</div>
+          <div id="callsTagFilterChips" class="multi-tag-chips"></div>
+        </div>
       </div>
       <div id="callsListBox"></div>
     </div>
 
+    <!-- تبويب المهام المعلقة في صفحة التحليلات أيضاً للوصول السريع -->
     <div id="analyticsPane-pending" class="analytics-pane">
       <div id="pendingTasksBox"></div>
     </div>
@@ -243,6 +323,7 @@
   </div>
 </section>
 
+<!-- ===================== شاشة الإعدادات ===================== -->
 <section id="screen-settings" class="screen">
   <header class="top-bar">
     <span style="width: 40px;"></span>
@@ -252,6 +333,16 @@
     </button>
   </header>
   <div class="form-body" style="padding-bottom: 80px;">
+
+    <!-- زر إضافة فرع جديد في الإعدادات -->
+    <div class="input-group">
+      <label data-i18n="addNewBranchLabel">Branch Management</label>
+      <button id="btnNewBranchSettings" class="btn-secondary btn-xl" data-i18n="createNewBranchBtn">
+        + Create New Branch
+      </button>
+    </div>
+
+    <hr class="divider">
     
     <div class="input-group">
       <label data-i18n="languageSelectLabel">System Language</label>
@@ -298,6 +389,7 @@
   </div>
 </section>
 
+<!-- ===================== شريط التنقل ===================== -->
 <nav class="bottom-nav" id="mainBottomNav">
   <button class="nav-item active" data-target="screen-branch">
     <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -311,12 +403,36 @@
     <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-4"/></svg>
     <span class="nav-lbl" data-i18n="navAnalytics">Analytics</span>
   </button>
+  <button class="nav-item" data-target="screen-allcalls">
+    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+    <span class="nav-lbl" data-i18n="navAllCalls">All Calls</span>
+  </button>
   <button class="nav-item" data-target="screen-settings">
     <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     <span class="nav-lbl" data-i18n="navSettings">Settings</span>
   </button>
 </nav>
 
+<!-- ===================== شاشة كل المكالمات (تبويب مستقل) ===================== -->
+<section id="screen-allcalls" class="screen">
+  <header class="top-bar">
+    <span style="width: 40px;"></span>
+    <h2 data-i18n="analyticsCallsTab">All Calls</h2>
+    <span style="width: 40px;"></span>
+  </header>
+  <div class="form-body" style="padding-bottom:80px;">
+    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+      <select id="allCallsFilterBranch" class="form-select"></select>
+      <div class="multi-tag-filter-wrap">
+        <div class="multi-tag-filter-label" data-i18n="filterByTagLabel">Filter by Tags:</div>
+        <div id="allCallsTagFilterChips" class="multi-tag-chips"></div>
+      </div>
+    </div>
+    <div id="allCallsListBox"></div>
+  </div>
+</section>
+
+<!-- ===================== نافذة استيراد الأرقام ===================== -->
 <div id="bulkImportModal" class="modal-overlay">
   <div class="modal-box">
     <h3 data-i18n="bulkImportTitle">Bulk Import Customers</h3>
