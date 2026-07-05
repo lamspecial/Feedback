@@ -122,7 +122,27 @@ const LANG_DICT = {
     
     tagType_positive: "Positive",
     tagType_negative: "Negative",
-    tagType_competitor: "Competitors"
+    tagType_competitor: "Competitors",
+
+    // تبويبات صفحة التحليلات الجديدة
+    analyticsOverviewTab: "Overview",
+    analyticsCallsTab: "All Calls",
+    analyticsPendingTab: "Pending Tasks",
+    allBranchesOption: "All Branches",
+    allTagsOption: "All Tags",
+    noCallsFound: "No calls found matching this filter.",
+    noPendingTasks: "No pending tasks. All customers have been reached.",
+    lastCallLabel: "Last call",
+
+    // نافذة استيراد الأرقام دفعة واحدة
+    bulkImportBtn: "Bulk Import Numbers",
+    bulkImportTitle: "Bulk Import Customers",
+    bulkImportHint: "Paste names and phone numbers, one per line: name, then its phone number on the next line, repeated for each customer.",
+    bulkImportConfirmBtn: "Import",
+    bulkImportNoValid: "No valid name/phone pairs were detected.",
+    bulkImportPreviewText: "{count} valid entries detected",
+    bulkImportResultText: "{added} customers added",
+    bulkImportDuplicateText: " · {dup} duplicates skipped"
   },
   ar: {
     selectBranchHeader: "اختر الفرع",
@@ -213,7 +233,27 @@ const LANG_DICT = {
 
     tagType_positive: "إيجابية",
     tagType_negative: "سلبية",
-    tagType_competitor: "منافسين"
+    tagType_competitor: "منافسين",
+
+    // تبويبات صفحة التحليلات الجديدة
+    analyticsOverviewTab: "نظرة عامة",
+    analyticsCallsTab: "كل المكالمات",
+    analyticsPendingTab: "مهام معلقة",
+    allBranchesOption: "كل الفروع",
+    allTagsOption: "كل الأوسمة",
+    noCallsFound: "لا توجد مكالمات مطابقة لهذا الفلتر.",
+    noPendingTasks: "لا توجد مهام معلقة، تم التواصل مع جميع العملاء.",
+    lastCallLabel: "آخر اتصال",
+
+    // نافذة استيراد الأرقام دفعة واحدة
+    bulkImportBtn: "استيراد أرقام دفعة واحدة",
+    bulkImportTitle: "استيراد عملاء دفعة واحدة",
+    bulkImportHint: "الصق الأسماء وأرقام الجوال، سطر لكل عنصر: اسم العميل ثم رقم جواله في السطر التالي، وهكذا لكل عميل.",
+    bulkImportConfirmBtn: "استيراد",
+    bulkImportNoValid: "لم يتم رصد أي أزواج اسم/رقم صالحة.",
+    bulkImportPreviewText: "تم رصد {count} إدخال صالح",
+    bulkImportResultText: "تمت إضافة {added} عميل",
+    bulkImportDuplicateText: " · تم تخطي {dup} مكرر"
   }
 };
 
@@ -250,6 +290,11 @@ function showScreen(id) {
   
   if (id === "screen-reports") {
     renderReports();
+    populateAnalyticsFilters();
+    document.querySelectorAll(".analytics-tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".analytics-pane").forEach(p => p.classList.remove("active"));
+    $("analyticsTabs")?.querySelector('[data-tab="overview"]')?.classList.add("active");
+    $("analyticsPane-overview")?.classList.add("active");
   }
 }
 
@@ -304,7 +349,12 @@ function applyLanguage(lang) {
 
   renderBranches();
   renderCustomers();
-  if ($("screen-reports").classList.contains("active")) renderReports();
+  if ($("screen-reports").classList.contains("active")) {
+    renderReports();
+    populateAnalyticsFilters();
+    if ($("analyticsPane-calls")?.classList.contains("active")) renderCallsList();
+    if ($("analyticsPane-pending")?.classList.contains("active")) renderPendingTasks();
+  }
   renderSettingsTags();
 }
 
@@ -970,6 +1020,238 @@ async function renderReports() {
     showToast(LANG_DICT[state.lang].loadReportsErr);
   }
 }
+
+// ===================== تبويبات صفحة التحليلات: كل المكالمات + المهام المعلقة =====================
+// ملاحظة: كل ما يلي يعتمد فقط على القراءة (getDocs) من نفس بنية البيانات الحالية
+// دون أي إضافة أو تعديل على قاعدة البيانات أو مخطط الحقول.
+
+document.querySelectorAll(".analytics-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".analytics-tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".analytics-pane").forEach(p => p.classList.remove("active"));
+    tab.classList.add("active");
+    $("analyticsPane-" + tab.dataset.tab)?.classList.add("active");
+    if (tab.dataset.tab === "calls") renderCallsList();
+    if (tab.dataset.tab === "pending") renderPendingTasks();
+  });
+});
+
+// جلب جميع العملاء من كل الفروع مع إرفاق اسم ومعرف الفرع لكل عميل (قراءة فقط)
+async function fetchAllCustomersAcrossBranches() {
+  const all = [];
+  for (const branch of state.branches) {
+    try {
+      const snap = await getDocs(collection(db, "branches", branch.id, "customers"));
+      snap.forEach(d => all.push({ id: d.id, branchId: branch.id, branchName: branch.name, ...d.data() }));
+    } catch (e) { /* تجاهل فرع تعذر قراءته دون التأثير على البقية */ }
+  }
+  return all;
+}
+
+function populateAnalyticsFilters() {
+  const branchSel = $("callsFilterBranch");
+  const tagSel = $("callsFilterTag");
+  if (!branchSel || !tagSel) return;
+
+  const curBranch = branchSel.value;
+  const curTag = tagSel.value;
+
+  branchSel.innerHTML = `<option value="">${LANG_DICT[state.lang].allBranchesOption}</option>` +
+    state.branches.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
+
+  const tagNames = new Set(state.tags.map(t => t.name));
+  tagNames.add(state.lang === "ar" ? "تم" : "Done");
+  tagNames.add(LANG_DICT[state.lang].uselessCallLbl);
+
+  tagSel.innerHTML = `<option value="">${LANG_DICT[state.lang].allTagsOption}</option>` +
+    Array.from(tagNames).map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+
+  branchSel.value = curBranch;
+  tagSel.value = curTag;
+}
+
+function callStatusText(c) {
+  if (c.isUseless) return LANG_DICT[state.lang].uselessCallLbl;
+  if (c.answered) return LANG_DICT[state.lang].statusAnswered;
+  if (c.called) return LANG_DICT[state.lang].statusNoAnswer;
+  return LANG_DICT[state.lang].statusNew;
+}
+
+// قائمة جميع المكالمات مع إمكانية التصفية حسب الوسم أو الفرع أو الاثنين معاً
+async function renderCallsList() {
+  const box = $("callsListBox");
+  if (!box) return;
+  box.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].analyzingReports}</p>`;
+  try {
+    const all = await fetchAllCustomersAcrossBranches();
+    const branchFilter = $("callsFilterBranch").value;
+    const tagFilter = $("callsFilterTag").value;
+
+    let calls = all.filter(c => c.called);
+    if (branchFilter) calls = calls.filter(c => c.branchId === branchFilter);
+    if (tagFilter) calls = calls.filter(c => (c.tags || []).includes(tagFilter));
+
+    calls.sort((a, b) => {
+      const ta = a.lastCallAt?.seconds || 0, tb = b.lastCallAt?.seconds || 0;
+      return tb - ta;
+    });
+
+    if (!calls.length) {
+      box.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:30px;">${LANG_DICT[state.lang].noCallsFound}</p>`;
+      return;
+    }
+
+    box.innerHTML = calls.map(c => {
+      const tagsHtml = (c.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
+      const statusClass = c.answered ? "answered" : (c.called ? "called" : "not-called");
+      return `<div class="customer-card">
+        <div class="customer-card-top">
+          <div>
+            <p class="customer-name">${escapeHtml(c.name || "N/A")}</p>
+            <p class="customer-phone">${escapeHtml(c.phone || "")}</p>
+          </div>
+          <span class="mini-branch-badge">${escapeHtml(c.branchName || "")}</span>
+        </div>
+        <span class="status-badge ${statusClass}">${callStatusText(c)}</span>
+        ${c.callDuration ? `<span style="font-size:11px; color:var(--text-dim); margin-inline-start:8px;">⏱ ${c.callDuration}s</span>` : ""}
+        <div class="customer-tags">${tagsHtml}</div>
+      </div>`;
+    }).join("");
+  } catch (err) {
+    console.error(err);
+    box.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].loadReportsErr}</p>`;
+  }
+}
+
+$("callsFilterBranch")?.addEventListener("change", renderCallsList);
+$("callsFilterTag")?.addEventListener("change", renderCallsList);
+
+// تبويب المهام المعلقة: أرقام العملاء الذين تم الاتصال بهم ولم يردوا
+async function renderPendingTasks() {
+  const box = $("pendingTasksBox");
+  if (!box) return;
+  box.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].analyzingReports}</p>`;
+  try {
+    const all = await fetchAllCustomersAcrossBranches();
+    const pending = all.filter(c => c.called && !c.answered && !c.isUseless);
+
+    pending.sort((a, b) => {
+      const ta = a.lastCallAt?.seconds || 0, tb = b.lastCallAt?.seconds || 0;
+      return tb - ta;
+    });
+
+    if (!pending.length) {
+      box.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:30px;">${LANG_DICT[state.lang].noPendingTasks}</p>`;
+      return;
+    }
+
+    box.innerHTML = pending.map(c => `
+      <div class="customer-card">
+        <div class="customer-card-top">
+          <div>
+            <p class="customer-name">${escapeHtml(c.name || "N/A")}</p>
+            <p class="customer-phone">${escapeHtml(c.phone || "")}</p>
+          </div>
+          <span class="mini-branch-badge">${escapeHtml(c.branchName || "")}</span>
+        </div>
+        <div class="customer-card-actions" style="justify-content:flex-start; border-top:none; padding-top:4px; margin-top:4px;">
+          <a class="card-action-btn card-action-call" href="tel:${escapeHtml(c.phone || "")}">${ICONS.call} ${LANG_DICT[state.lang].callBtnText}</a>
+        </div>
+      </div>`).join("");
+  } catch (err) {
+    console.error(err);
+    box.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].loadReportsErr}</p>`;
+  }
+}
+
+// ===================== نافذة حقن أرقام العملاء دفعة واحدة =====================
+// يتم تحليل النص الملصق فقط في المتصفح، ثم إضافة كل عميل عبر نفس addDoc المستخدم للإضافة الفردية
+// دون أي تعديل على بنية أو حقول قاعدة البيانات.
+
+$("btnBulkImport")?.addEventListener("click", () => {
+  $("bulkImportTextarea").value = "";
+  $("bulkImportPreview").textContent = "";
+  $("bulkImportModal").classList.add("show");
+});
+
+$("btnBulkImportCancel")?.addEventListener("click", () => {
+  $("bulkImportModal").classList.remove("show");
+});
+
+function parseBulkImportText(text) {
+  const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  const pairs = [];
+  for (let i = 0; i < rawLines.length; i += 2) {
+    const name = rawLines[i];
+    const phoneRaw = rawLines[i + 1];
+    if (!phoneRaw) break; // سطر اسم دون رقم مقابل، يتم تجاهله
+    const phone = normalizePhone(phoneRaw);
+    if (!phone) continue;
+    pairs.push({ name, phone });
+  }
+  return pairs;
+}
+
+$("bulkImportTextarea")?.addEventListener("input", (e) => {
+  const pairs = parseBulkImportText(e.target.value);
+  $("bulkImportPreview").textContent = pairs.length
+    ? LANG_DICT[state.lang].bulkImportPreviewText.replace("{count}", pairs.length)
+    : "";
+});
+
+$("btnBulkImportConfirm").addEventListener("click", async () => {
+  if (!state.currentBranchId) return;
+  const pairs = parseBulkImportText($("bulkImportTextarea").value);
+  if (!pairs.length) {
+    showToast(LANG_DICT[state.lang].bulkImportNoValid);
+    return;
+  }
+
+  $("btnBulkImportConfirm").disabled = true;
+  try {
+    // جمع كل الأرقام الموجودة حالياً في جميع الفروع لمنع التكرار (قراءة فقط)
+    const existingPhones = new Set();
+    for (const b of state.branches) {
+      try {
+        const snap = await getDocs(collection(db, "branches", b.id, "customers"));
+        snap.forEach(d => { if (d.data().phone) existingPhones.add(d.data().phone); });
+      } catch (e) {}
+    }
+
+    let added = 0, skippedDup = 0;
+    const seenInBatch = new Set();
+
+    for (const pair of pairs) {
+      if (existingPhones.has(pair.phone) || seenInBatch.has(pair.phone)) { skippedDup++; continue; }
+      seenInBatch.add(pair.phone);
+      try {
+        await addDoc(customersCol(), {
+          name: pair.name || "N/A",
+          phone: pair.phone,
+          positiveComment: "",
+          improvementComment: "",
+          tags: [],
+          called: false,
+          answered: false,
+          isUseless: false,
+          callDuration: 0,
+          recordingUrl: "",
+          createdAt: serverTimestamp()
+        });
+        added++;
+      } catch (e) { /* تجاهل العنصر الفاشل ومتابعة الباقي */ }
+    }
+
+    $("bulkImportModal").classList.remove("show");
+    let msg = LANG_DICT[state.lang].bulkImportResultText.replace("{added}", added);
+    if (skippedDup) msg += LANG_DICT[state.lang].bulkImportDuplicateText.replace("{dup}", skippedDup);
+    showToast(msg);
+  } catch (err) {
+    showToast(LANG_DICT[state.lang].toastFirebaseErr);
+  } finally {
+    $("btnBulkImportConfirm").disabled = false;
+  }
+});
 
 // قيود أبعاد المتصفح لمنع التشتت
 document.addEventListener("wheel", (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });

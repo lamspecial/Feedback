@@ -53,6 +53,10 @@
     <span style="width: 40px;"></span>
   </header>
   <div class="form-body">
+    <button id="btnBulkImport" type="button" class="btn-secondary" style="margin-bottom:16px; display:flex; align-items:center; justify-content:center; gap:8px;" data-i18n="bulkImportBtn">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      Bulk Import Numbers
+    </button>
     <div class="input-group">
       <label data-i18n="customerNameLabel">Customer Name</label>
       <input type="text" id="customerName" placeholder="Enter name...">
@@ -204,15 +208,38 @@
     <h2 data-i18n="reportsAnalyticsHeader">Reports & Analytics</h2>
     <span style="width: 40px;"></span>
   </header>
+
+  <div class="analytics-tabs" id="analyticsTabs">
+    <button class="analytics-tab active" data-tab="overview" data-i18n="analyticsOverviewTab">Overview</button>
+    <button class="analytics-tab" data-tab="calls" data-i18n="analyticsCallsTab">All Calls</button>
+    <button class="analytics-tab" data-tab="pending" data-i18n="analyticsPendingTab">Pending Tasks</button>
+  </div>
+
   <div class="form-body" style="padding-bottom: 80px;">
-    <div class="report-box">
-      <h3 style="font-size:14px; margin-bottom:12px;" data-i18n="tagDistributionTitle">Current Branch Tag Metrics</h3>
-      <div id="reportTagsCurrentBranch"></div>
+
+    <div id="analyticsPane-overview" class="analytics-pane active">
+      <div class="report-box">
+        <h3 style="font-size:14px; margin-bottom:12px;" data-i18n="tagDistributionTitle">Current Branch Tag Metrics</h3>
+        <div id="reportTagsCurrentBranch"></div>
+      </div>
+      <div class="report-box" style="margin-top:20px;">
+        <h3 style="font-size:14px; margin-bottom:12px;" data-i18n="branchComparisonTitle">Cross-Branch Comparative Grid</h3>
+        <div class="report-table-wrap" id="reportBranchComparison"></div>
+      </div>
     </div>
-    <div class="report-box" style="margin-top:20px;">
-      <h3 style="font-size:14px; margin-bottom:12px;" data-i18n="branchComparisonTitle">Cross-Branch Comparative Grid</h3>
-      <div class="report-table-wrap" id="reportBranchComparison"></div>
+
+    <div id="analyticsPane-calls" class="analytics-pane">
+      <div class="filters-row">
+        <select id="callsFilterBranch" class="form-select"></select>
+        <select id="callsFilterTag" class="form-select"></select>
+      </div>
+      <div id="callsListBox"></div>
     </div>
+
+    <div id="analyticsPane-pending" class="analytics-pane">
+      <div id="pendingTasksBox"></div>
+    </div>
+
   </div>
 </section>
 
@@ -289,6 +316,19 @@
     <span class="nav-lbl" data-i18n="navSettings">Settings</span>
   </button>
 </nav>
+
+<div id="bulkImportModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 data-i18n="bulkImportTitle">Bulk Import Customers</h3>
+    <p class="modal-hint" data-i18n="bulkImportHint">Paste names and phone numbers, one per line, name then its number below it.</p>
+    <textarea id="bulkImportTextarea" rows="10" placeholder="علي&#10;0501234567&#10;احمد&#10;0509876543"></textarea>
+    <p id="bulkImportPreview" class="bulk-preview"></p>
+    <div class="modal-actions">
+      <button id="btnBulkImportCancel" class="btn-secondary" data-i18n="cancelBtn">Cancel</button>
+      <button id="btnBulkImportConfirm" class="btn-primary" data-i18n="bulkImportConfirmBtn">Import</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast" class="toast"></div>
 
