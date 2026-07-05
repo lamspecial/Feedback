@@ -143,21 +143,19 @@ const LANG_DICT = {
     bulkImportPreviewText: "{count} valid entries detected",
     bulkImportResultText: "{added} customers added",
     bulkImportDuplicateText: " · {dup} duplicates skipped",
+
+    // إضافات: إدارة الفروع من الإعدادات، تصفية الأوسمة المتعددة، الشاشات الجديدة
     navAllCalls: "All Calls",
-    addNewBranchLabel: "Branch Management",
-    filterByBranchLabel: "Branch:",
-    filterByTagLabel: "Filter by Tags:",
-    viewPendingBtn: "View",
-    pendingTasksTitle: "Pending Tasks",
-    kpiTotalCustomers: "Total Customers",
-    kpiTotalCalled: "Called",
-    kpiTotalAnswered: "Answered",
-    kpiPending: "Pending",
-    responseRateTitle: "Response Rate",
-    answeredLegend: "Answered",
-    noAnswerLegend: "No Answer",
-    notCalledLegend: "Not Called",
-    allBranchesChip: "All"
+    addNewBranchLabel: "Add New Branch",
+    branchNameRequiredToast: "Please enter a branch name",
+    selectedTagsCountText: "{count} tags selected",
+    branchSelectForAnalyticsLabel: "Show Analytics For",
+    visualIndicatorsTitle: "Visual Call Status Indicators",
+    donutCenterLbl: "Answered",
+    kpiTotalLbl: "Total Customers",
+    kpiCalledLbl: "Called",
+    kpiAnsweredLbl: "Answered",
+    kpiUselessLbl: "Useless Calls"
   },
   ar: {
     selectBranchHeader: "اختر الفرع",
@@ -269,21 +267,19 @@ const LANG_DICT = {
     bulkImportPreviewText: "تم رصد {count} إدخال صالح",
     bulkImportResultText: "تمت إضافة {added} عميل",
     bulkImportDuplicateText: " · تم تخطي {dup} مكرر",
+
+    // إضافات: إدارة الفروع من الإعدادات، تصفية الأوسمة المتعددة، الشاشات الجديدة
     navAllCalls: "كل المكالمات",
-    addNewBranchLabel: "إدارة الفروع",
-    filterByBranchLabel: "الفرع:",
-    filterByTagLabel: "تصفية بالأوسمة:",
-    viewPendingBtn: "عرض",
-    pendingTasksTitle: "مهام معلقة",
-    kpiTotalCustomers: "إجمالي العملاء",
-    kpiTotalCalled: "تم الاتصال",
-    kpiTotalAnswered: "ردوا",
-    kpiPending: "معلقة",
-    responseRateTitle: "نسبة الاستجابة",
-    answeredLegend: "أجابوا",
-    noAnswerLegend: "لم يردوا",
-    notCalledLegend: "لم يُتصل بهم",
-    allBranchesChip: "الكل"
+    addNewBranchLabel: "إضافة فرع جديد",
+    branchNameRequiredToast: "الرجاء إدخال اسم الفرع",
+    selectedTagsCountText: "تم اختيار {count} وسم",
+    branchSelectForAnalyticsLabel: "عرض التحليلات لـ",
+    visualIndicatorsTitle: "مؤشرات بصرية لحالة المكالمات",
+    donutCenterLbl: "تم الرد",
+    kpiTotalLbl: "إجمالي العملاء",
+    kpiCalledLbl: "تم الاتصال",
+    kpiAnsweredLbl: "تم الرد",
+    kpiUselessLbl: "مكالمات غير مفيدة"
   }
 };
 
@@ -295,7 +291,9 @@ const state = {
   recordSeconds: 0, pendingAudioBlob: null, unsubCustomers: null, unsubBranches: null, unsubTags: null,
   lang: localStorage.getItem("app-lang") || "en",
   drivingMode: localStorage.getItem("app-driving-mode") === "true",
-  callStartTime: null
+  callStartTime: null,
+  callsFilterTags: new Set(),
+  reportsFilterBranchId: ""
 };
 
 function $(id) { return document.getElementById(id); }
@@ -306,7 +304,7 @@ function showScreen(id) {
   $(id).classList.add("active");
   
   // تحديث إضاءة شريط التنقل بناءً على الشاشة المفتوحة
-  const mainTabs = ["screen-branch", "screen-customers", "screen-reports", "screen-settings"];
+  const mainTabs = ["screen-branch", "screen-customers", "screen-all-calls", "screen-reports", "screen-settings"];
   if (mainTabs.includes(id)) {
     $("mainBottomNav").style.display = "flex";
     document.querySelectorAll(".nav-item").forEach(item => {
@@ -317,21 +315,19 @@ function showScreen(id) {
     // إخفاء شريط التنقل في الشاشات العريضة التفاعلية
     $("mainBottomNav").style.display = "none";
   }
-  
+
   if (id === "screen-reports") {
+    populateReportsBranchFilter();
     renderReports();
-    populateAnalyticsFilters();
-    document.querySelectorAll(".analytics-tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".analytics-pane").forEach(p => p.classList.remove("active"));
-    $("analyticsTabs")?.querySelector('[data-tab="overview"]')?.classList.add("active");
-    $("analyticsPane-overview")?.classList.add("active");
   }
-  if (id === "screen-allcalls") {
-    populateAllCallsFilters();
-    renderAllCallsList();
+
+  if (id === "screen-all-calls") {
+    populateCallsFilters();
+    renderCallsList();
   }
-  if (id === "screen-branch") {
-    renderBranchPendingBanner();
+
+  if (id === "screen-pending") {
+    renderPendingTasks();
   }
 }
 
@@ -387,10 +383,15 @@ function applyLanguage(lang) {
   renderBranches();
   renderCustomers();
   if ($("screen-reports").classList.contains("active")) {
+    populateReportsBranchFilter();
     renderReports();
-    populateAnalyticsFilters();
-    if ($("analyticsPane-calls")?.classList.contains("active")) renderCallsList();
-    if ($("analyticsPane-pending")?.classList.contains("active")) renderPendingTasks();
+  }
+  if ($("screen-all-calls").classList.contains("active")) {
+    populateCallsFilters();
+    renderCallsList();
+  }
+  if ($("screen-pending").classList.contains("active")) {
+    renderPendingTasks();
   }
   renderSettingsTags();
 }
@@ -446,7 +447,6 @@ function listenBranches() {
     state.branches = [];
     snap.forEach(d => state.branches.push({ id: d.id, ...d.data() }));
     renderBranches();
-    renderBranchPendingBanner();
   }, err => { showToast(LANG_DICT[state.lang].toastLoadBranchErr); });
 }
 
@@ -462,16 +462,35 @@ function renderBranches() {
   });
 }
 
-async function createNewBranch() {
-  const name = prompt(LANG_DICT[state.lang].promptNewBranch);
-  if (!name || !name.trim()) return;
+async function createBranch(name) {
+  if (!name || !name.trim()) {
+    showToast(LANG_DICT[state.lang].branchNameRequiredToast);
+    return false;
+  }
   try {
     await addDoc(collection(db, "branches"), { name: name.trim(), createdAt: serverTimestamp() });
     showToast(LANG_DICT[state.lang].toastBranchSuccess);
-  } catch (err) { showToast(LANG_DICT[state.lang].toastBranchFailed); }
+    return true;
+  } catch (err) {
+    showToast(LANG_DICT[state.lang].toastBranchFailed);
+    return false;
+  }
 }
-$("btnNewBranch").addEventListener("click", createNewBranch);
-$("btnNewBranchSettings")?.addEventListener("click", createNewBranch);
+
+// إضافة فرع جديد أصبحت من شاشة الإعدادات بدلاً من شاشة الفروع
+$("btnAddBranchSettings")?.addEventListener("click", async () => {
+  const input = $("newBranchInput");
+  const ok = await createBranch(input.value);
+  if (ok) input.value = "";
+});
+
+// زر المهام المعلقة أصبح في مكان زر "إنشاء فرع جديد" السابق داخل شاشة الفروع
+$("btnPendingTasksNav")?.addEventListener("click", () => {
+  showScreen("screen-pending");
+  renderPendingTasks();
+});
+
+$("btnBackFromPending")?.addEventListener("click", () => showScreen("screen-branch"));
 
 function openBranch(id, name) {
   state.currentBranchId = id;
@@ -496,37 +515,6 @@ $("btnBackToBranches").addEventListener("click", () => {
   $("branchManageDivider").style.display = "none";
 
   showScreen("screen-branch");
-  renderBranchPendingBanner();
-});
-
-$("btnShowPendingInBranch")?.addEventListener("click", async () => {
-  const panel = $("branchPendingPanel");
-  panel.style.display = "block";
-  const listEl = $("branchPendingList");
-  listEl.innerHTML = `<p style="padding:10px; color:var(--text-dim); text-align:center;">${LANG_DICT[state.lang].analyzingReports}</p>`;
-  try {
-    const all = await fetchAllCustomersAcrossBranches();
-    const pending = all.filter(c => c.called && !c.answered && !c.isUseless);
-    pending.sort((a, b) => (b.lastCallAt?.seconds || 0) - (a.lastCallAt?.seconds || 0));
-    if (!pending.length) {
-      listEl.innerHTML = `<p style="padding:10px; color:var(--text-dim); text-align:center;">${LANG_DICT[state.lang].noPendingTasks}</p>`;
-      return;
-    }
-    listEl.innerHTML = pending.map(c => `
-      <div class="customer-card" style="margin-bottom:8px;">
-        <div class="customer-card-top">
-          <div><p class="customer-name">${escapeHtml(c.name||"N/A")}</p><p class="customer-phone">${escapeHtml(c.phone||"")}</p></div>
-          <span class="mini-branch-badge">${escapeHtml(c.branchName||"")}</span>
-        </div>
-        <div class="customer-card-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;margin-top:4px;">
-          <a class="card-action-btn card-action-call" href="tel:${escapeHtml(c.phone||"")}">${ICONS.call} ${LANG_DICT[state.lang].callBtnText}</a>
-        </div>
-      </div>`).join("");
-  } catch(e) {}
-});
-
-$("btnClosePendingPanel")?.addEventListener("click", () => {
-  $("branchPendingPanel").style.display = "none";
 });
 
 $("btnRenameBranch").addEventListener("click", async () => {
@@ -682,46 +670,27 @@ $("btnBackspace").addEventListener("pointerdown", (e) => {
   $("customerPhone").value = dialBuffer;
 });
 
-$("btnPastePhone").addEventListener("pointerdown", async (e) => {
+// ملاحظة: تم التحويل من حدث pointerdown إلى click لأن Clipboard API
+// يتطلب "تفعيل مستخدم" (user activation) موثوق، وبعض المتصفحات (خصوصاً على الجوال)
+// لا تعتبر pointerdown كافياً لمنح صلاحية القراءة من الحافظة، مما كان يسبب فشل اللصق دائماً.
+$("btnPastePhone").addEventListener("click", async (e) => {
   e.preventDefault();
-  // محاولة لصق من الحافظة مع fallback لحقل النص
-  try {
-    if (navigator.clipboard && navigator.clipboard.readText) {
-      const text = await navigator.clipboard.readText();
-      const nums = text.replace(/[^\d+]/g, "");
-      if (nums) {
-        dialBuffer += nums;
-        $("customerPhone").value = dialBuffer;
-        return;
-      }
-    }
-    // fallback: نفتح input مخفي للصق
-    const tmp = document.createElement("input");
-    tmp.style.cssText = "position:fixed;top:-100px;left:-100px;opacity:0;";
-    document.body.appendChild(tmp);
-    tmp.focus();
-    const pasted = document.execCommand("paste");
-    const val = tmp.value;
-    document.body.removeChild(tmp);
-    if (val) {
-      const nums = val.replace(/[^\d+]/g, "");
-      if (nums) { dialBuffer += nums; $("customerPhone").value = dialBuffer; return; }
-    }
-    showToast(state.lang === "ar" ? "اضغط مطولاً للصق" : "Long press to paste");
-  } catch(err) {
-    showToast(state.lang === "ar" ? "اضغط مطولاً للصق" : "Long press to paste");
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    showToast(state.lang === "ar" ? "المتصفح لا يدعم اللصق التلقائي، الرجاء الإدخال يدوياً" : "Your browser doesn't support clipboard paste, please enter manually");
+    return;
   }
-});
-// دعم اللصق بالضغط المطوّل على حقل الرقم
-$("customerPhone").addEventListener("contextmenu", (e) => { e.preventDefault(); });
-document.addEventListener("paste", (e) => {
-  if (document.activeElement === $("customerPhone") || document.activeElement?.closest("#screen-add-customer")) {
-    const text = (e.clipboardData || window.clipboardData).getData("text");
-    if (text) {
-      const nums = text.replace(/[^\d+]/g, "");
-      if (nums) { dialBuffer += nums; $("customerPhone").value = dialBuffer; }
-      e.preventDefault();
+  try {
+    const text = await navigator.clipboard.readText();
+    const nums = (text || "").replace(/[^\d+]/g, "");
+    if (nums) {
+      dialBuffer += nums;
+      $("customerPhone").value = dialBuffer;
+    } else {
+      showToast(state.lang === "ar" ? "لا يوجد رقم صالح في الحافظة" : "No valid number found in clipboard");
     }
+  } catch (err) {
+    console.error("Clipboard paste error:", err);
+    showToast(state.lang === "ar" ? "فشل اللصق، تأكد من منح إذن الوصول للحافظة" : "Paste failed, please allow clipboard access");
   }
 });
 
@@ -1064,83 +1033,123 @@ function saveRecordingToLocalStorage(blob, customerId) {
   });
 }
 
-// رندرة التحليلات والجداول المتقاطعة
+// تعبئة قائمة اختيار الفرع الخاصة بشاشة التحليلات: كل الفروع أو فرع محدد
+function populateReportsBranchFilter() {
+  const sel = $("reportsFilterBranch");
+  if (!sel) return;
+  const cur = sel.value || state.reportsFilterBranchId || "";
+  sel.innerHTML = `<option value="">${LANG_DICT[state.lang].allBranchesOption}</option>` +
+    state.branches.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
+  sel.value = cur;
+  state.reportsFilterBranchId = sel.value;
+}
+
+$("reportsFilterBranch")?.addEventListener("change", (e) => {
+  state.reportsFilterBranchId = e.target.value;
+  renderReports();
+});
+
+// بناء تدرج دائري (Conic Gradient) لعرض توزيع حالات المكالمات بصرياً
+function buildConicGradient(segments) {
+  let acc = 0;
+  const stops = segments
+    .filter(s => s.pct > 0)
+    .map(s => {
+      const start = acc;
+      acc += s.pct;
+      return `${s.color} ${start}% ${acc}%`;
+    });
+  if (!stops.length) return "var(--surface-2)";
+  return `conic-gradient(${stops.join(", ")})`;
+}
+
+function renderVisualIndicators(dataset) {
+  const donut = $("callStatusDonut");
+  const legend = $("callStatusLegend");
+  const centerVal = $("donutCenterVal");
+  const kpiBox = $("reportKpiCards");
+  if (!donut || !legend || !kpiBox) return;
+
+  const total = dataset.length;
+  const answered = dataset.filter(c => c.answered && !c.isUseless).length;
+  const useless = dataset.filter(c => c.isUseless).length;
+  const pendingCalled = dataset.filter(c => c.called && !c.answered && !c.isUseless).length;
+  const notCalled = dataset.filter(c => !c.called && !c.isUseless).length;
+
+  const pct = (n) => total ? Math.round((n / total) * 100) : 0;
+
+  const segments = [
+    { key: "answered", color: "var(--success)", pct: pct(answered), count: answered, label: LANG_DICT[state.lang].statusAnswered },
+    { key: "pending", color: "var(--warning)", pct: pct(pendingCalled), count: pendingCalled, label: LANG_DICT[state.lang].statusNoAnswer },
+    { key: "useless", color: "var(--danger)", pct: pct(useless), count: useless, label: LANG_DICT[state.lang].uselessCallLbl },
+    { key: "new", color: "var(--border)", pct: pct(notCalled), count: notCalled, label: LANG_DICT[state.lang].statusNew }
+  ];
+
+  donut.style.background = total ? buildConicGradient(segments) : "var(--surface-2)";
+  centerVal.textContent = pct(answered) + "%";
+
+  legend.innerHTML = segments.map(s => `
+    <div class="donut-legend-item">
+      <span class="donut-legend-dot" style="background:${s.color};"></span>
+      <span>${escapeHtml(s.label)}: <b>${s.count}</b> (${s.pct}%)</span>
+    </div>`).join("");
+
+  kpiBox.innerHTML = `
+    <div class="kpi-card"><p class="kpi-val">${total}</p><p class="kpi-lbl">${LANG_DICT[state.lang].kpiTotalLbl}</p></div>
+    <div class="kpi-card"><p class="kpi-val">${answered + pendingCalled + useless}</p><p class="kpi-lbl">${LANG_DICT[state.lang].kpiCalledLbl}</p></div>
+    <div class="kpi-card"><p class="kpi-val">${answered}</p><p class="kpi-lbl">${LANG_DICT[state.lang].kpiAnsweredLbl}</p></div>
+    <div class="kpi-card"><p class="kpi-val">${useless}</p><p class="kpi-lbl">${LANG_DICT[state.lang].kpiUselessLbl}</p></div>`;
+}
+
+// رندرة التحليلات والجداول المتقاطعة: تدعم عرض كل الفروع معاً أو فرع محدد يتم اختياره
 async function renderReports() {
   const currentBox = $("reportTagsCurrentBranch");
   const tableBox = $("reportBranchComparison");
   if (!currentBox || !tableBox) return;
-  
+
   currentBox.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].analyzingReports}</p>`;
   tableBox.innerHTML = "";
 
   try {
-    // جلب بيانات الفرع المختار أو كل الفروع
-    let allData = [];
-    const branchesToShow = state_analyticsBranchId
-      ? state.branches.filter(b => b.id === state_analyticsBranchId)
-      : state.branches;
-
-    for (const branch of branchesToShow) {
-      const snap = await getDocs(collection(db, "branches", branch.id, "customers"));
-      snap.forEach(d => allData.push({ branchId: branch.id, branchName: branch.name, ...d.data() }));
+    const branchId = state.reportsFilterBranchId;
+    let dataset;
+    if (!branchId) {
+      dataset = await fetchAllCustomersAcrossBranches();
+    } else if (branchId === state.currentBranchId) {
+      dataset = state.customers;
+    } else {
+      const snap = await getDocs(collection(db, "branches", branchId, "customers"));
+      dataset = [];
+      snap.forEach(d => dataset.push({ id: d.id, ...d.data() }));
     }
 
-    // ===== KPI Cards =====
-    const totalCust = allData.length;
-    const totalCalled = allData.filter(c => c.called).length;
-    const totalAnswered = allData.filter(c => c.answered).length;
-    const totalPending = allData.filter(c => c.called && !c.answered && !c.isUseless).length;
+    renderVisualIndicators(dataset);
 
-    if ($("kpiTotalCustomers")) $("kpiTotalCustomers").textContent = totalCust;
-    if ($("kpiTotalCalled")) $("kpiTotalCalled").textContent = totalCalled;
-    if ($("kpiTotalAnswered")) $("kpiTotalAnswered").textContent = totalAnswered;
-    if ($("kpiPending")) $("kpiPending").textContent = totalPending;
+    const currentCounts = {};
+    state.tags.forEach(t => currentCounts[t.name] = 0);
+    currentCounts[state.lang === "ar" ? "تم" : "Done"] = 0;
+    currentCounts[LANG_DICT[state.lang].uselessCallLbl] = 0;
 
-    // ===== Response Rate =====
-    const rate = totalCust > 0 ? Math.round((totalAnswered / totalCust) * 100) : 0;
-    if ($("responseRatePct")) $("responseRatePct").textContent = rate + "%";
-    if ($("responseRateFill")) $("responseRateFill").style.width = rate + "%";
+    dataset.forEach(c => (c.tags || []).forEach(t => { currentCounts[t] = (currentCounts[t] || 0) + 1; }));
 
-    // Stacked bar
-    const notCalled = totalCust - totalCalled;
-    const noAnswer = totalCalled - totalAnswered;
-    const stackedBar = $("stackedBar");
-    if (stackedBar && totalCust > 0) {
-      const pAnswered = (totalAnswered / totalCust) * 100;
-      const pNoAnswer = (noAnswer / totalCust) * 100;
-      const pNotCalled = (notCalled / totalCust) * 100;
-      stackedBar.innerHTML = `
-        <div class="stacked-bar-seg" style="width:${pAnswered}%;background:var(--success);" title="${LANG_DICT[state.lang].answeredLegend}:${totalAnswered}"></div>
-        <div class="stacked-bar-seg" style="width:${pNoAnswer}%;background:var(--warning);" title="${LANG_DICT[state.lang].noAnswerLegend}:${noAnswer}"></div>
-        <div class="stacked-bar-seg" style="width:${pNotCalled}%;background:var(--surface-2);" title="${LANG_DICT[state.lang].notCalledLegend}:${notCalled}"></div>`;
-    }
-
-    // ===== Tag Distribution =====
-    const tagCounts = {};
-    state.tags.forEach(t => tagCounts[t.name] = 0);
-    tagCounts[state.lang === "ar" ? "تم" : "Done"] = 0;
-    tagCounts[LANG_DICT[state.lang].uselessCallLbl] = 0;
-    allData.forEach(c => (c.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
-
-    const maxCount = Math.max(1, ...Object.values(tagCounts));
-    currentBox.innerHTML = Object.keys(tagCounts).length
-      ? Object.entries(tagCounts).sort((a,b) => b[1]-a[1]).map(([tag, count]) => {
-          const tagObj = state.tags.find(t => t.name === tag);
-          const colorClass = tagObj ? tagObj.type : (tag === "Done" || tag === "تم" ? "done" : "");
-          return `<div class="report-bar-row">
-            <span class="report-bar-label">${escapeHtml(tag)}</span>
-            <div class="report-bar-track"><div class="report-bar-fill ${colorClass}" style="width:${(count / maxCount) * 100}%"></div></div>
-            <span class="report-bar-count">${count}</span>
-          </div>`;
-        }).join("")
+    const maxCurrent = Math.max(1, ...Object.values(currentCounts));
+    currentBox.innerHTML = Object.keys(currentCounts).length
+      ? Object.entries(currentCounts).map(([tag, count]) => `
+        <div class="report-bar-row">
+          <span class="report-bar-label">${escapeHtml(tag)}</span>
+          <div class="report-bar-track"><div class="report-bar-fill" style="width:${(count / maxCurrent) * 100}%"></div></div>
+          <span class="report-bar-count">${count}</span>
+        </div>`).join("")
       : `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].noStatsAvailable}</p>`;
 
-    // ===== Cross-branch comparison table =====
     const branchCounts = {};
     for (const branch of state.branches) {
       const snap = await getDocs(collection(db, "branches", branch.id, "customers"));
       const counts = {};
-      snap.forEach(d => { (d.data().tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; }); });
+      snap.forEach(d => {
+        const data = d.data();
+        (data.tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+      });
       branchCounts[branch.name] = counts;
     }
 
@@ -1153,8 +1162,7 @@ async function renderReports() {
     let tableHtml = `<table class="report-table"><thead><tr><th>${LANG_DICT[state.lang].fieldBranchColHeader}</th>${allTags.map(t => `<th>${escapeHtml(t)}</th>`).join("")}</tr></thead><tbody>`;
     state.branches.forEach(branch => {
       const counts = branchCounts[branch.name] || {};
-      const isSelected = state_analyticsBranchId === branch.id;
-      tableHtml += `<tr${isSelected ? ' style="background:rgba(46,125,255,0.1);"' : ""}><td><b>${escapeHtml(branch.name)}</b></td>${allTags.map(t => `<td>${counts[t] || 0}</td>`).join("")}</tr>`;
+      tableHtml += `<tr><td><b>${escapeHtml(branch.name)}</b></td>${allTags.map(t => `<td>${counts[t] || 0}</td>`).join("")}</tr>`;
     });
     tableHtml += `</tbody></table>`;
     tableBox.innerHTML = tableHtml;
@@ -1164,39 +1172,9 @@ async function renderReports() {
   }
 }
 
-// عرض المهام المعلقة في تبويب الفروع
-async function renderBranchPendingBanner() {
-  try {
-    const all = await fetchAllCustomersAcrossBranches();
-    const pending = all.filter(c => c.called && !c.answered && !c.isUseless);
-    const banner = $("branchPendingBanner");
-    const countEl = $("branchPendingCount");
-    if (!banner) return;
-    if (pending.length > 0) {
-      banner.style.display = "block";
-      countEl.textContent = (state.lang === "ar")
-        ? `${pending.length} مهمة معلقة`
-        : `${pending.length} pending task${pending.length > 1 ? "s" : ""}`;
-    } else {
-      banner.style.display = "none";
-    }
-  } catch(e) {}
-}
-
-// ===================== تبويبات صفحة التحليلات: كل المكالمات + المهام المعلقة =====================
+// ===================== شاشة كل المكالمات + شاشة المهام المعلقة =====================
 // ملاحظة: كل ما يلي يعتمد فقط على القراءة (getDocs) من نفس بنية البيانات الحالية
 // دون أي إضافة أو تعديل على قاعدة البيانات أو مخطط الحقول.
-
-document.querySelectorAll(".analytics-tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".analytics-tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".analytics-pane").forEach(p => p.classList.remove("active"));
-    tab.classList.add("active");
-    $("analyticsPane-" + tab.dataset.tab)?.classList.add("active");
-    if (tab.dataset.tab === "allcalls") { populateCallsTagFilter(); renderCallsList(); }
-    if (tab.dataset.tab === "pending") renderPendingTasks();
-  });
-});
 
 // جلب جميع العملاء من كل الفروع مع إرفاق اسم ومعرف الفرع لكل عميل (قراءة فقط)
 async function fetchAllCustomersAcrossBranches() {
@@ -1210,90 +1188,64 @@ async function fetchAllCustomersAcrossBranches() {
   return all;
 }
 
-// حالة الأوسمة المختارة للفلتر
-const state_callsSelectedTags = new Set();
-// حالة الفرع المختار في التحليلات
-let state_analyticsBranchId = "";
-
-function populateAnalyticsFilters() {
-  // بناء chips الفروع في صفحة التحليلات
-  const chipsWrap = $("analyticsBranchChips");
-  if (chipsWrap) {
-    chipsWrap.innerHTML = "";
-    // كل الفروع
-    const allChip = document.createElement("button");
-    allChip.className = "branch-chip" + (!state_analyticsBranchId ? " active" : "");
-    allChip.textContent = LANG_DICT[state.lang].allBranchesChip || "All";
-    allChip.addEventListener("click", () => {
-      state_analyticsBranchId = "";
-      chipsWrap.querySelectorAll(".branch-chip").forEach(c => c.classList.remove("active"));
-      allChip.classList.add("active");
-      renderReports();
-    });
-    chipsWrap.appendChild(allChip);
-
-    state.branches.forEach(b => {
-      const chip = document.createElement("button");
-      chip.className = "branch-chip" + (state_analyticsBranchId === b.id ? " active" : "");
-      chip.textContent = b.name;
-      chip.addEventListener("click", () => {
-        state_analyticsBranchId = b.id;
-        chipsWrap.querySelectorAll(".branch-chip").forEach(c => c.classList.remove("active"));
-        chip.classList.add("active");
-        renderReports();
-      });
-      chipsWrap.appendChild(chip);
-    });
-  }
+// تحديث نص زر تصفية الأوسمة المتعددة بناءً على عدد الأوسمة المختارة حالياً
+function updateCallsFilterTagBtnLabel() {
+  const btn = $("callsFilterTagBtn");
+  if (!btn) return;
+  const count = state.callsFilterTags.size;
+  btn.textContent = count
+    ? LANG_DICT[state.lang].selectedTagsCountText.replace("{count}", count)
+    : LANG_DICT[state.lang].allTagsOption;
 }
 
-function populateCallsTagFilter() {
-  const wrap = $("callsTagFilterChips");
-  if (!wrap) return;
-  wrap.innerHTML = "";
+// تعبئة فلاتر شاشة كل المكالمات: قائمة الفروع + لوحة اختيار أوسمة متعددة
+function populateCallsFilters() {
+  const branchSel = $("callsFilterBranch");
+  const tagPanel = $("callsFilterTagPanel");
+  if (!branchSel || !tagPanel) return;
+
+  const curBranch = branchSel.value;
+
+  branchSel.innerHTML = `<option value="">${LANG_DICT[state.lang].allBranchesOption}</option>` +
+    state.branches.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
+  branchSel.value = curBranch;
+
   const tagNames = new Set(state.tags.map(t => t.name));
   tagNames.add(state.lang === "ar" ? "تم" : "Done");
   tagNames.add(LANG_DICT[state.lang].uselessCallLbl);
-  Array.from(tagNames).forEach(t => {
-    const chip = document.createElement("button");
-    chip.className = "tag-filter-chip" + (state_callsSelectedTags.has(t) ? " active" : "");
-    chip.textContent = t;
-    chip.addEventListener("click", () => {
-      if (state_callsSelectedTags.has(t)) { state_callsSelectedTags.delete(t); chip.classList.remove("active"); }
-      else { state_callsSelectedTags.add(t); chip.classList.add("active"); }
+
+  // إزالة أي وسم محدد لم يعد موجوداً ضمن قائمة الأوسمة الحالية
+  Array.from(state.callsFilterTags).forEach(t => { if (!tagNames.has(t)) state.callsFilterTags.delete(t); });
+
+  tagPanel.innerHTML = Array.from(tagNames).map((t, i) => `
+    <label class="multi-tag-option">
+      <input type="checkbox" data-tag="${escapeHtml(t)}" ${state.callsFilterTags.has(t) ? "checked" : ""}>
+      <span>${escapeHtml(t)}</span>
+    </label>`).join("");
+
+  tagPanel.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+    chk.addEventListener("change", () => {
+      const tag = chk.dataset.tag;
+      if (chk.checked) state.callsFilterTags.add(tag);
+      else state.callsFilterTags.delete(tag);
+      updateCallsFilterTagBtnLabel();
       renderCallsList();
     });
-    wrap.appendChild(chip);
   });
+
+  updateCallsFilterTagBtnLabel();
 }
 
-function populateAllCallsFilters() {
-  const branchSel = $("allCallsFilterBranch");
-  if (branchSel) {
-    branchSel.innerHTML = `<option value="">${LANG_DICT[state.lang].allBranchesOption}</option>` +
-      state.branches.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
-    branchSel.addEventListener("change", renderAllCallsList);
-  }
-  const wrap = $("allCallsTagFilterChips");
-  if (wrap) {
-    wrap.innerHTML = "";
-    const tagNames = new Set(state.tags.map(t => t.name));
-    tagNames.add(state.lang === "ar" ? "تم" : "Done");
-    tagNames.add(LANG_DICT[state.lang].uselessCallLbl);
-    Array.from(tagNames).forEach(t => {
-      const chip = document.createElement("button");
-      chip.className = "tag-filter-chip" + (state_allCallsSelectedTags.has(t) ? " active" : "");
-      chip.textContent = t;
-      chip.addEventListener("click", () => {
-        if (state_allCallsSelectedTags.has(t)) { state_allCallsSelectedTags.delete(t); chip.classList.remove("active"); }
-        else { state_allCallsSelectedTags.add(t); chip.classList.add("active"); }
-        renderAllCallsList();
-      });
-      wrap.appendChild(chip);
-    });
-  }
-}
-const state_allCallsSelectedTags = new Set();
+$("callsFilterTagBtn")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  $("callsFilterTagPanel")?.classList.toggle("show");
+});
+
+// إغلاق لوحة الأوسمة عند الضغط خارجها
+document.addEventListener("click", (e) => {
+  const wrap = $("callsFilterTagWrap");
+  if (wrap && !wrap.contains(e.target)) $("callsFilterTagPanel")?.classList.remove("show");
+});
 
 function callStatusText(c) {
   if (c.isUseless) return LANG_DICT[state.lang].uselessCallLbl;
@@ -1303,55 +1255,18 @@ function callStatusText(c) {
 }
 
 // قائمة جميع المكالمات مع إمكانية التصفية حسب الوسم أو الفرع أو الاثنين معاً
-async function renderAllCallsList() {
-  const box = $("allCallsListBox");
-  if (!box) return;
-  box.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].analyzingReports}</p>`;
-  try {
-    const all = await fetchAllCustomersAcrossBranches();
-    const branchFilter = $("allCallsFilterBranch")?.value || "";
-    let calls = all.filter(c => c.called);
-    if (branchFilter) calls = calls.filter(c => c.branchId === branchFilter);
-    if (state_allCallsSelectedTags.size > 0) {
-      calls = calls.filter(c => Array.from(state_allCallsSelectedTags).some(t => (c.tags || []).includes(t)));
-    }
-    calls.sort((a, b) => { const ta = a.lastCallAt?.seconds || 0, tb = b.lastCallAt?.seconds || 0; return tb - ta; });
-    if (!calls.length) {
-      box.innerHTML = `<p style="color:var(--text-dim);text-align:center;padding:30px;">${LANG_DICT[state.lang].noCallsFound}</p>`;
-      return;
-    }
-    box.innerHTML = calls.map(c => {
-      const tagsHtml = (c.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
-      const statusClass = c.answered ? "answered" : (c.called ? "called" : "not-called");
-      return `<div class="customer-card">
-        <div class="customer-card-top">
-          <div>
-            <p class="customer-name">${escapeHtml(c.name || "N/A")}</p>
-            <p class="customer-phone">${escapeHtml(c.phone || "")}</p>
-          </div>
-          <span class="mini-branch-badge">${escapeHtml(c.branchName || "")}</span>
-        </div>
-        <span class="status-badge ${statusClass}">${callStatusText(c)}</span>
-        ${c.callDuration ? `<span style="font-size:11px; color:var(--text-dim); margin-inline-start:8px;">⏱ ${c.callDuration}s</span>` : ""}
-        <div class="customer-tags">${tagsHtml}</div>
-      </div>`;
-    }).join("");
-  } catch (err) {
-    console.error(err);
-    box.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].loadReportsErr}</p>`;
-  }
-}
-
 async function renderCallsList() {
   const box = $("callsListBox");
   if (!box) return;
   box.innerHTML = `<p style="color:var(--text-dim);text-align:center;">${LANG_DICT[state.lang].analyzingReports}</p>`;
   try {
     const all = await fetchAllCustomersAcrossBranches();
+    const branchFilter = $("callsFilterBranch").value;
+    const tagFilters = state.callsFilterTags;
+
     let calls = all.filter(c => c.called);
-    if (state_callsSelectedTags.size > 0) {
-      calls = calls.filter(c => Array.from(state_callsSelectedTags).some(t => (c.tags || []).includes(t)));
-    }
+    if (branchFilter) calls = calls.filter(c => c.branchId === branchFilter);
+    if (tagFilters.size) calls = calls.filter(c => (c.tags || []).some(t => tagFilters.has(t)));
 
     calls.sort((a, b) => {
       const ta = a.lastCallAt?.seconds || 0, tb = b.lastCallAt?.seconds || 0;
@@ -1385,7 +1300,7 @@ async function renderCallsList() {
   }
 }
 
-// listeners moved to populateAllCallsFilters
+$("callsFilterBranch")?.addEventListener("change", renderCallsList);
 
 // تبويب المهام المعلقة: أرقام العملاء الذين تم الاتصال بهم ولم يردوا
 async function renderPendingTasks() {
