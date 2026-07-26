@@ -977,3 +977,105 @@ html[dir="rtl"] .multi-tag-filter-btn { text-align: right; }
 }
 
 .modal-actions button { flex: 1; }
+
+/* ===================== زر استخراج التقرير النصي ===================== */
+.btn-export-report {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 70%, var(--success)));
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  letter-spacing: 0.3px;
+}
+
+.btn-export-report:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+/* ===================== نافذة التقرير النصي ===================== */
+.report-modal-box {
+  max-width: 680px;
+  width: 95vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.modal-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.modal-header-row h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.report-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-report-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-weight: 500;
+}
+
+.btn-report-action:hover {
+  background: var(--border);
+}
+
+.btn-report-action .icon-svg {
+  width: 15px;
+  height: 15px;
+}
+
+.report-textarea {
+  flex: 1;
+  width: 100%;
+  background: var(--surface-2);
+  border: none;
+  border-radius: 0;
+  color: var(--text);
+  padding: 16px 18px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  font-family: "Courier New", "Lucida Console", monospace;
+  resize: none;
+  overflow-y: auto;
+  direction: ltr;
+  text-align: left;
+  white-space: pre;
+  box-sizing: border-box;
+  min-height: 300px;
+}

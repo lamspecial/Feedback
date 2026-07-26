@@ -155,7 +155,14 @@ const LANG_DICT = {
     kpiTotalLbl: "Total Customers",
     kpiCalledLbl: "Called",
     kpiAnsweredLbl: "Answered",
-    kpiUselessLbl: "Useless Calls"
+    kpiUselessLbl: "Useless Calls",
+
+    exportTextReportBtn: "Export Text Report",
+    textReportTitle: "Text Report",
+    copyReportBtn: "Copy",
+    downloadReportBtn: "Download",
+    reportCopied: "Report copied to clipboard!",
+    reportGenerating: "Generating report..."
   },
   ar: {
     selectBranchHeader: "اختر الفرع",
@@ -279,7 +286,14 @@ const LANG_DICT = {
     kpiTotalLbl: "إجمالي العملاء",
     kpiCalledLbl: "تم الاتصال",
     kpiAnsweredLbl: "تم الرد",
-    kpiUselessLbl: "مكالمات غير مفيدة"
+    kpiUselessLbl: "مكالمات غير مفيدة",
+
+    exportTextReportBtn: "استخراج تقرير نصي",
+    textReportTitle: "التقرير النصي",
+    copyReportBtn: "نسخ",
+    downloadReportBtn: "تنزيل",
+    reportCopied: "تم نسخ التقرير!",
+    reportGenerating: "جارٍ إنشاء التقرير..."
   }
 };
 
@@ -1427,6 +1441,192 @@ $("btnBulkImportConfirm").addEventListener("click", async () => {
   } finally {
     $("btnBulkImportConfirm").disabled = false;
   }
+});
+
+// ===================== التقرير النصي الشامل =====================
+
+async function generateTextReport() {
+  const lang = state.lang;
+  const isAr = lang === "ar";
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(isAr ? "ar-SA" : "en-US", { year: "numeric", month: "long", day: "numeric" });
+  const timeStr = now.toLocaleTimeString(isAr ? "ar-SA" : "en-US", { hour: "2-digit", minute: "2-digit" });
+
+  const sep = "═".repeat(50);
+  const dash = "─".repeat(50);
+  const miniDash = "─".repeat(30);
+
+  let lines = [];
+
+  // رأس التقرير
+  lines.push(sep);
+  lines.push(isAr
+    ? `       تقرير نظام التغذية الراجعة`
+    : `       FEEDBACK SYSTEM REPORT`);
+  lines.push(isAr
+    ? `  التاريخ: ${dateStr}   الوقت: ${timeStr}`
+    : `  Date: ${dateStr}   Time: ${timeStr}`);
+  lines.push(sep);
+  lines.push("");
+
+  // جلب جميع بيانات الفروع والعملاء
+  let allBranchData = [];
+  for (const branch of state.branches) {
+    try {
+      const snap = await getDocs(collection(db, "branches", branch.id, "customers"));
+      const customers = [];
+      snap.forEach(d => customers.push({ id: d.id, ...d.data() }));
+      allBranchData.push({ branch, customers });
+    } catch (e) {}
+  }
+
+  const allCustomers = allBranchData.flatMap(b => b.customers);
+  const totalAll = allCustomers.length;
+  const calledAll = allCustomers.filter(c => c.called).length;
+  const answeredAll = allCustomers.filter(c => c.answered && !c.isUseless).length;
+  const uselessAll = allCustomers.filter(c => c.isUseless).length;
+  const pendingAll = allCustomers.filter(c => c.called && !c.answered && !c.isUseless).length;
+  const notCalledAll = allCustomers.filter(c => !c.called).length;
+
+  // الملخص العام
+  lines.push(isAr ? "◆ الملخص العام" : "◆ OVERALL SUMMARY");
+  lines.push(dash);
+  const pct = (n, t) => t ? `${n} (${Math.round((n / t) * 100)}%)` : `${n} (0%)`;
+  lines.push((isAr ? "إجمالي العملاء     : " : "Total Customers    : ") + totalAll);
+  lines.push((isAr ? "عدد الفروع         : " : "Total Branches     : ") + state.branches.length);
+  lines.push((isAr ? "تم الاتصال         : " : "Called             : ") + pct(calledAll, totalAll));
+  lines.push((isAr ? "تم الرد            : " : "Answered           : ") + pct(answeredAll, totalAll));
+  lines.push((isAr ? "لم يرد             : " : "No Answer          : ") + pct(pendingAll, totalAll));
+  lines.push((isAr ? "مكالمات غير مفيدة  : " : "Useless Calls      : ") + pct(uselessAll, totalAll));
+  lines.push((isAr ? "لم يُتصل بهم بعد   : " : "Not Called Yet     : ") + pct(notCalledAll, totalAll));
+  lines.push("");
+
+  // إحصائيات الأوسمة العامة
+  const tagCounts = {};
+  allCustomers.forEach(c => (c.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
+  const tagEntries = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+
+  if (tagEntries.length) {
+    lines.push(isAr ? "◆ توزيع الأوسمة (كل الفروع)" : "◆ TAG DISTRIBUTION (ALL BRANCHES)");
+    lines.push(dash);
+    tagEntries.forEach(([tag, count]) => {
+      const bar = "█".repeat(Math.min(20, Math.round((count / totalAll) * 20)));
+      lines.push(`  ${tag.padEnd(20)} ${bar} ${count}`);
+    });
+    lines.push("");
+  }
+
+  // تفاصيل كل فرع
+  lines.push(isAr ? "◆ تفاصيل الفروع" : "◆ BRANCH DETAILS");
+  lines.push(dash);
+
+  for (const { branch, customers } of allBranchData) {
+    const total = customers.length;
+    const called = customers.filter(c => c.called).length;
+    const answered = customers.filter(c => c.answered && !c.isUseless).length;
+    const useless = customers.filter(c => c.isUseless).length;
+    const pending = customers.filter(c => c.called && !c.answered && !c.isUseless).length;
+    const notCalled = customers.filter(c => !c.called).length;
+
+    lines.push("");
+    lines.push(`  ▸ ${branch.name}`);
+    lines.push("  " + miniDash);
+    lines.push(`  ${isAr ? "الإجمالي" : "Total"}     : ${total}`);
+    lines.push(`  ${isAr ? "تم الرد " : "Answered"} : ${pct(answered, total)}`);
+    lines.push(`  ${isAr ? "لم يرد  " : "No Answr"} : ${pct(pending, total)}`);
+    lines.push(`  ${isAr ? "غير مفيد" : "Useless "} : ${pct(useless, total)}`);
+    lines.push(`  ${isAr ? "لم يُتصل" : "Not Call"} : ${pct(notCalled, total)}`);
+
+    // أوسمة الفرع
+    const branchTagCounts = {};
+    customers.forEach(c => (c.tags || []).forEach(t => { branchTagCounts[t] = (branchTagCounts[t] || 0) + 1; }));
+    const branchTagEntries = Object.entries(branchTagCounts).sort((a, b) => b[1] - a[1]);
+    if (branchTagEntries.length) {
+      lines.push(`  ${isAr ? "الأوسمة" : "Tags"}:`);
+      branchTagEntries.forEach(([tag, count]) => {
+        lines.push(`    • ${tag}: ${count}`);
+      });
+    }
+
+    // تعليقات العملاء الإيجابية والتحسينية
+    const positives = customers.filter(c => c.positiveComment && c.positiveComment.trim());
+    const improvements = customers.filter(c => c.improvementComment && c.improvementComment.trim());
+
+    if (positives.length) {
+      lines.push(`  ${isAr ? "نقاط إيجابية مذكورة:" : "Positive Feedback:"}`);
+      positives.forEach(c => {
+        lines.push(`    ✓ [${c.name || "N/A"}]: ${c.positiveComment.trim()}`);
+      });
+    }
+    if (improvements.length) {
+      lines.push(`  ${isAr ? "نقاط تحسين مذكورة:" : "Improvement Feedback:"}`);
+      improvements.forEach(c => {
+        lines.push(`    ⚑ [${c.name || "N/A"}]: ${c.improvementComment.trim()}`);
+      });
+    }
+  }
+
+  // قائمة المهام المعلقة
+  const pending = allCustomers.filter(c => c.called && !c.answered && !c.isUseless);
+  if (pending.length) {
+    lines.push("");
+    lines.push(dash);
+    lines.push(isAr ? "◆ المهام المعلقة (لم يردوا)" : "◆ PENDING TASKS (No Answer)");
+    lines.push(dash);
+    pending.forEach((c, i) => {
+      const branchName = allBranchData.find(b => b.customers.some(cu => cu.id === c.id))?.branch.name || "";
+      lines.push(`  ${i + 1}. ${c.name || "N/A"} — ${c.phone || ""}  [${branchName}]`);
+    });
+  }
+
+  lines.push("");
+  lines.push(sep);
+  lines.push(isAr
+    ? `  انتهى التقرير — ${dateStr}`
+    : `  End of Report — ${dateStr}`);
+  lines.push(sep);
+
+  return lines.join("\n");
+}
+
+$("btnExportTextReport")?.addEventListener("click", async () => {
+  const modal = $("textReportModal");
+  const textarea = $("textReportContent");
+  textarea.value = LANG_DICT[state.lang].reportGenerating || "Generating...";
+  modal.classList.add("show");
+  const report = await generateTextReport();
+  textarea.value = report;
+});
+
+$("btnCloseTextReport")?.addEventListener("click", () => {
+  $("textReportModal").classList.remove("show");
+});
+
+$("btnCopyReport")?.addEventListener("click", async () => {
+  const text = $("textReportContent").value;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(LANG_DICT[state.lang].reportCopied);
+  } catch {
+    $("textReportContent").select();
+    document.execCommand("copy");
+    showToast(LANG_DICT[state.lang].reportCopied);
+  }
+});
+
+$("btnDownloadReport")?.addEventListener("click", () => {
+  const text = $("textReportContent").value;
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const now = new Date();
+  const fname = `feedback-report-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}.txt`;
+  a.href = url; a.download = fname; a.click();
+  URL.revokeObjectURL(url);
+});
+
+$("textReportModal")?.addEventListener("click", (e) => {
+  if (e.target === $("textReportModal")) $("textReportModal").classList.remove("show");
 });
 
 // قيود أبعاد المتصفح لمنع التشتت

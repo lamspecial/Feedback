@@ -266,8 +266,34 @@
       <div class="report-table-wrap" id="reportBranchComparison"></div>
     </div>
 
+    <button id="btnExportTextReport" class="btn-export-report">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/><path d="M12 19v-6M9 16l3 3 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span data-i18n="exportTextReportBtn">Export Text Report</span>
+    </button>
+
   </div>
 </section>
+
+<!-- نافذة التقرير النصي -->
+<div id="textReportModal" class="modal-overlay">
+  <div class="modal-box report-modal-box">
+    <div class="modal-header-row">
+      <h3 data-i18n="textReportTitle">Text Report</h3>
+      <div class="report-modal-actions">
+        <button id="btnCopyReport" class="btn-report-action">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span data-i18n="copyReportBtn">Copy</span>
+        </button>
+        <button id="btnDownloadReport" class="btn-report-action">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-i18n="downloadReportBtn">Download</span>
+        </button>
+        <button id="btnCloseTextReport" class="icon-btn">✕</button>
+      </div>
+    </div>
+    <textarea id="textReportContent" class="report-textarea" readonly></textarea>
+  </div>
+</div>
 
 <section id="screen-settings" class="screen">
   <header class="top-bar">
